@@ -1,5 +1,5 @@
-# AE1200 Smart Module
+# AE1200 Strata
 
-A custom smart module for the Casio AE-1200 featuring a memory-in-pixel (MIP) display.
+Open-source software for a custom Casio AE-1200 smart module featuring a memory-in-pixel (MIP) display.
 
 Project details and implementation documentation will be added as development progresses.
