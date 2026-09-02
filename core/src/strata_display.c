@@ -1,0 +1,131 @@
+#include "strata_display.h"
+
+#include <stddef.h>
+
+struct scene_info { const char *name; const char *description; };
+static const struct scene_info scenes[] = {
+    {"World time", "Local time and global context."},
+    {"Activity", "Daily movement and recovery."},
+    {"Weather", "Current conditions and forecast."},
+    {"Navigation", "Glanceable turn guidance."},
+    {"Notification", "A quiet message preview."},
+    {"Timer", "High-contrast focus timing."},
+};
+
+/* 3x5 glyphs, encoded left-to-right in each group of three bits. */
+static uint16_t glyph(char c)
+{
+    static const uint16_t digits[] = {
+        0x7B6F, 0x2492, 0x73E7, 0x73CF, 0x5BC9,
+        0x79CF, 0x79EF, 0x7249, 0x7BEF, 0x7BCF,
+    };
+    static const uint16_t letters[] = {
+        0x7BED, 0x6BAE, 0x7927, 0x6B6E, 0x79E7, 0x79E4, 0x79AF,
+        0x5BED, 0x7497, 0x124F, 0x5AAD, 0x4927, 0x5FED, 0x5F6D,
+        0x7B6F, 0x7BE4, 0x7B7B, 0x7BAC, 0x79CF, 0x7492, 0x5B6F,
+        0x5B6A, 0x5FFD, 0x5AAD, 0x5A92, 0x72A7,
+    };
+    if (c >= '0' && c <= '9') return digits[c - '0'];
+    if (c >= 'A' && c <= 'Z') return letters[c - 'A'];
+    if (c == ':') return 0x0410;
+    if (c == '.') return 0x0002;
+    if (c == '-') return 0x01C0;
+    if (c == '%') return 0x5295;
+    return 0;
+}
+
+static void fill(uint8_t *f, uint8_t color)
+{
+    for (size_t i = 0; i < STRATA_FRAME_BYTES; ++i) f[i] = color;
+}
+
+static void rect(uint8_t *f, int x, int y, int w, int h, uint8_t color)
+{
+    for (int py = y; py < y + h; ++py)
+        for (int px = x; px < x + w; ++px)
+            if (px >= 0 && px < STRATA_WIDTH && py >= 0 && py < STRATA_HEIGHT)
+                f[py * STRATA_WIDTH + px] = color;
+}
+
+static void label(uint8_t *f, const char *s, int x, int y, int scale, uint8_t color)
+{
+    while (*s) {
+        uint16_t bits = glyph(*s++);
+        for (int row = 0; row < 5; ++row)
+            for (int col = 0; col < 3; ++col)
+                if (bits & (1u << (14 - row * 3 - col)))
+                    rect(f, x + col * scale, y + row * scale, scale, scale, color);
+        x += 4 * scale;
+    }
+}
+
+static void rule(uint8_t *f, int y) { rect(f, 8, y, 160, 1, STRATA_BLACK); }
+
+static void top(uint8_t *f, const char *left, const char *right)
+{
+    rect(f, 12, 13, 51, 43, STRATA_GREEN);
+    rect(f, 16, 17, 43, 35, STRATA_WHITE);
+    label(f, left, 18, 28, 2, STRATA_BLACK);
+    label(f, right, 88, 25, 3, STRATA_BLUE);
+    rule(f, 72);
+}
+
+static void world(uint8_t *f)
+{
+    top(f, "BAT", "NYC"); label(f, "MON 18", 10, 81, 2, STRATA_BLACK);
+    label(f, "10:09", 27, 104, 8, STRATA_BLACK); label(f, "NEW YORK", 48, 151, 2, STRATA_BLUE);
+}
+
+static void activity(uint8_t *f)
+{
+    top(f, "MOVE", "84%"); label(f, "TODAY", 10, 81, 2, STRATA_BLACK);
+    rect(f, 14, 106, 18, 52, STRATA_BLACK); rect(f, 38, 121, 18, 37, STRATA_GREEN); rect(f, 62, 136, 18, 22, STRATA_YELLOW);
+    label(f, "8421", 96, 105, 4, STRATA_BLACK); label(f, "STEPS", 96, 129, 2, STRATA_BLUE); label(f, "5.8 KM", 96, 146, 2, STRATA_BLACK);
+}
+
+static void weather(uint8_t *f)
+{
+    top(f, "UV3", "BOS"); label(f, "FORECAST", 10, 81, 2, STRATA_BLACK);
+    rect(f, 20, 108, 34, 34, STRATA_YELLOW); rect(f, 28, 100, 18, 50, STRATA_YELLOW); rect(f, 12, 116, 50, 18, STRATA_YELLOW);
+    label(f, "68", 86, 102, 7, STRATA_BLACK); label(f, "CLEAR", 87, 140, 2, STRATA_BLUE); label(f, "H72 L54", 87, 156, 2, STRATA_BLACK);
+}
+
+static void navigation(uint8_t *f)
+{
+    top(f, "N", "0.4MI"); label(f, "WALK", 10, 81, 2, STRATA_BLACK);
+    rect(f, 25, 111, 7, 48, STRATA_BLUE); rect(f, 25, 106, 42, 7, STRATA_BLUE); rect(f, 60, 97, 7, 16, STRATA_BLUE);
+    rect(f, 55, 97, 17, 7, STRATA_BLUE); label(f, "TURN", 87, 105, 3, STRATA_BLACK); label(f, "RIGHT", 87, 124, 3, STRATA_BLACK); label(f, "6 MIN", 87, 151, 2, STRATA_GREEN);
+}
+
+static void notification(uint8_t *f)
+{
+    top(f, "MSG", "1 NEW"); label(f, "PHONE", 10, 81, 2, STRATA_BLACK);
+    rect(f, 10, 101, 5, 62, STRATA_BLUE); label(f, "ALEX", 25, 101, 3, STRATA_BLUE);
+    label(f, "PROTOTYPE", 25, 124, 2, STRATA_BLACK); label(f, "LOOKS GREAT", 25, 141, 2, STRATA_BLACK); label(f, "10:09", 25, 158, 1, STRATA_BLACK);
+}
+
+static void timer(uint8_t *f, uint32_t elapsed_ms)
+{
+    unsigned int seconds = 37u + elapsed_ms / 1000u;
+    unsigned int remaining = seconds < 25u * 60u ? 25u * 60u - seconds : 0;
+    char value[] = "00:00";
+    value[0] = (char)('0' + (remaining / 600u) % 10u); value[1] = (char)('0' + (remaining / 60u) % 10u);
+    value[3] = (char)('0' + (remaining / 10u) % 6u); value[4] = (char)('0' + remaining % 10u);
+    top(f, "TMR", "RUN"); label(f, "FOCUS", 10, 81, 2, STRATA_BLACK);
+    label(f, value, 27, 108, 8, STRATA_BLACK); rect(f, 15, 153, 146, 7, STRATA_BLACK); rect(f, 15, 153, 112, 7, STRATA_GREEN);
+}
+
+unsigned int strata_scene_count(void) { return (unsigned int)(sizeof(scenes) / sizeof(scenes[0])); }
+const char *strata_scene_name(unsigned int scene) { return scenes[scene % strata_scene_count()].name; }
+const char *strata_scene_description(unsigned int scene) { return scenes[scene % strata_scene_count()].description; }
+
+void strata_render(uint8_t *frame, unsigned int scene, uint32_t elapsed_ms)
+{
+    if (!frame) return;
+    fill(frame, STRATA_WHITE);
+    switch (scene % strata_scene_count()) {
+    case 0: world(frame); break; case 1: activity(frame); break;
+    case 2: weather(frame); break; case 3: navigation(frame); break;
+    case 4: notification(frame); break; default: timer(frame, elapsed_ms); break;
+    }
+}

@@ -3,10 +3,19 @@
 Open-source software for a custom Casio AE-1200 smart module featuring a
 memory-in-pixel (MIP) display.
 
-## V1 display simulator
+## Native V1 display simulator
 
-The browser simulator models the JDI LPM013M126A's 176 x 176 pixel, eight-color
-display and automatically cycles through product-demo layouts.
+The native simulator and future firmware share a portable C framebuffer
+renderer. It requires GCC, Python 3, and Tk 8.6, with no third-party packages.
+
+```sh
+make simulator
+```
+
+## Browser UX prototype
+
+The earlier browser simulator remains available for convenient UX experiments.
+The native shared-C simulator is the pixel-accuracy reference.
 
 ```sh
 python3 -m http.server 8000
