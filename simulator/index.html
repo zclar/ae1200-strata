@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111410">
+    <title>AE1200 Strata — Display Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">AE1200 STRATA / V1 DEMO</p>
+        <h1>Memory-in-pixel display simulator</h1>
+        <p class="lede">A pixel-accurate preview of the 176 × 176, eight-color JDI display.</p>
+      </header>
+
+      <section class="workbench" aria-label="Watch simulator">
+        <div class="watch-shell">
+          <div class="screw screw-nw"></div><div class="screw screw-ne"></div>
+          <div class="screw screw-sw"></div><div class="screw screw-se"></div>
+          <div class="display-frame">
+            <canvas id="display" width="176" height="176" aria-label="Simulated watch display"></canvas>
+            <svg id="mask" class="mask" viewBox="0 0 176 176" aria-label="Approximate AE-1200 faceplate mask">
+              <path fill-rule="evenodd" d="M0 0h176v176H0z M7 8h63v61H7z M76 8h93v61H76z M7 76h162v93H7z"/>
+              <path class="divider" d="M72.8 7v63M6 72.5h164"/>
+            </svg>
+          </div>
+          <div class="case-label"><span>WR</span><strong>STRATA</strong><span>MIP</span></div>
+        </div>
+
+        <aside class="panel">
+          <div>
+            <p class="label">NOW SHOWING</p>
+            <h2 id="scene-name">World time</h2>
+            <p id="scene-description">Local time and global context.</p>
+          </div>
+          <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+          <div class="controls">
+            <button id="previous" type="button" aria-label="Previous scene">←</button>
+            <button id="play" type="button">Pause</button>
+            <button id="next" type="button" aria-label="Next scene">→</button>
+          </div>
+          <label><input id="mask-toggle" type="checkbox" checked> Faceplate mask</label>
+          <label><input id="grid-toggle" type="checkbox"> Pixel grid</label>
+          <p class="note">Mask geometry is provisional until calibrated against the physical cover.</p>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="simulator.js"></script>
+  </body>
+</html>
