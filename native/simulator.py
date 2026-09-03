@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import ctypes
+import json
 import pathlib
 import time
 import tkinter as tk
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LIB = ctypes.CDLL(str(ROOT / "build" / "libstrata_display.so"))
+GEOMETRY = json.loads((ROOT / "config" / "faceplates" / "ae1200-community-r1.json").read_text())
 LIB.strata_scene_count.restype = ctypes.c_uint
 LIB.strata_scene_name.restype = ctypes.c_char_p
 LIB.strata_scene_description.restype = ctypes.c_char_p
@@ -14,6 +16,27 @@ SIZE, SCALE, SCENE_MS = 176, 3, 5000
 Frame = ctypes.c_uint8 * (SIZE * SIZE)
 COLORS = ((17, 22, 16), (61, 102, 142), (78, 140, 73), (101, 163, 157),
           (184, 59, 50), (140, 86, 125), (201, 184, 62), (220, 224, 200))
+FACEPLATE = (24, 28, 24)
+PITCH = GEOMETRY["display"]["pixel_pitch_mm"]
+# Center the community cover's measured aperture field over the JDI active area.
+X0 = 3.66381 - (23.28 - 23.0208) / 2
+Z0 = 17.41375 - (23.0208 - (38.10376 - 17.41375)) / 2
+
+def inside(point, polygon):
+    x, y = point; hit = False
+    for i, (ax, ay) in enumerate(polygon):
+        bx, by = polygon[i - 1]
+        if (ay > y) != (by > y) and x < (bx - ax) * (y - ay) / (by - ay) + ax:
+            hit = not hit
+    return hit
+
+APERTURES = []
+for aperture in GEOMETRY["apertures"].values():
+    APERTURES.append(tuple(((x - X0) / PITCH, (z - Z0) / PITCH)
+                           for x, z in aperture["contour_xz_mm"]))
+
+def visible(x, y):
+    return any(inside((x + .5, y + .5), polygon) for polygon in APERTURES)
 
 class Simulator:
     def __init__(self, root):
@@ -34,9 +57,9 @@ class Simulator:
         self.play = tk.Button(controls, text="Pause", command=self.toggle); self.play.pack(side="left", padx=8)
         tk.Button(controls, text="→", command=lambda: self.select(1)).pack(side="left")
         self.mask = tk.BooleanVar(value=True)
-        tk.Checkbutton(root, text="Faceplate mask", variable=self.mask, command=self.draw,
+        tk.Checkbutton(root, text="Reference faceplate mask (unverified)", variable=self.mask, command=self.draw,
                        fg="#c2c9bd", bg="#111410", selectcolor="#242a22").grid(row=3, column=1, sticky="nw")
-        tk.Label(root, text="176 × 176  •  RGB111  •  shared C renderer", fg="#788174", bg="#111410").grid(row=4, column=1, sticky="nw")
+        tk.Label(root, text="176 × 176  •  RGB111  •  0.1308 mm/pixel", fg="#788174", bg="#111410").grid(row=4, column=1, sticky="nw")
         self.select(0, absolute=True); self.tick()
 
     def select(self, amount, absolute=False):
@@ -54,17 +77,10 @@ class Simulator:
         elapsed = int((time.monotonic() - self.started) * 1000)
         LIB.strata_render(self.frame, self.scene, elapsed)
         header = f"P6\n{SIZE} {SIZE}\n255\n".encode()
-        pixels = b''.join(bytes(COLORS[p]) for p in self.frame)
+        pixels = b''.join(bytes(COLORS[p] if not self.mask.get() or visible(i % SIZE, i // SIZE) else FACEPLATE)
+                          for i, p in enumerate(self.frame))
         image = tk.PhotoImage(data=header + pixels, format="PPM").zoom(SCALE)
         self.image = image; self.canvas.delete("all"); self.canvas.create_image(0, 0, image=image, anchor="nw")
-        if self.mask.get():
-            s = SCALE; fill = "#181c18"; outline = "#303630"
-            self.canvas.create_rectangle(0, 0, 6*s, SIZE*s, fill=fill, outline=outline)
-            self.canvas.create_rectangle(169*s, 0, SIZE*s, SIZE*s, fill=fill, outline=outline)
-            self.canvas.create_rectangle(0, 0, SIZE*s, 7*s, fill=fill, outline=outline)
-            self.canvas.create_rectangle(0, 69*s, SIZE*s, 76*s, fill=fill, outline=outline)
-            self.canvas.create_rectangle(70*s, 0, 76*s, 70*s, fill=fill, outline=outline)
-            self.canvas.create_rectangle(0, 169*s, SIZE*s, SIZE*s, fill=fill, outline=outline)
 
     def tick(self):
         elapsed = (time.monotonic() - self.started) * 1000

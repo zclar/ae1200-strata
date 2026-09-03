@@ -21,6 +21,7 @@ uninstall-app:
 test: $(BUILD)/libstrata_display.so
 	python3 -m py_compile native/simulator.py
 	python3 tests/test_renderer.py
+	python3 tests/test_faceplate.py
 
 clean:
 	rm -f $(BUILD)/libstrata_display.so
