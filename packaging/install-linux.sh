@@ -126,4 +126,4 @@ if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "$strata_applications_dir" >/dev/null 2>&1 || true
 fi
 
-printf 'Installed. Open “AE1200 Strata” from the application menu.\n'
+printf 'Installed. Open “AE1200 Emulator” from the application menu.\n'
