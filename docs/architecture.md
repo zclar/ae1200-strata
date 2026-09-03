@@ -38,6 +38,7 @@ panel's appearance without changing framebuffer data.
 ## Confirmed display constraints
 
 - JDI LPM013M126A
+- AE-1200 case envelope: approximately 45.0 x 42.1 x 12.5 mm
 - 176 x 176 addressable pixels
 - RGB111: one bit each for red, green, and blue (eight colors total)
 - Active image area: 23.0208 x 23.0208 mm
