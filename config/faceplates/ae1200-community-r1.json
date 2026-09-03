@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "id": "ae1200-community-r1",
+  "status": "reference_only_unverified",
+  "units": "mm",
+  "source": {
+    "model": "Casio Royale (AE1200) Faceplate - Full Detail",
+    "url": "https://www.thingiverse.com/thing:6825880",
+    "license": "Creative Commons Attribution-ShareAlike",
+    "plane": "front face at STL Y=0.625; X horizontal, Z vertical"
+  },
+  "display": {
+    "model": "JDI LPM013M126A",
+    "pixels": [176, 176],
+    "active_area_mm": [23.0208, 23.0208],
+    "pixel_pitch_mm": 0.1308
+  },
+  "apertures": {
+    "analog": {
+      "shape": "polygonal_circle_with_fillets",
+      "contour_xz_mm": [[4.2264,22.35747],[4.52488,21.04972],[5.19557,19.88805],[6.17887,18.97568],[7.38741,18.39368],[8.71381,18.19375],[10.04021,18.39368],[11.24875,18.97568],[12.23205,19.88805],[12.90274,21.04972],[13.20123,22.35747],[13.10099,23.6951],[12.61093,24.94375],[11.77459,25.99249],[10.66629,26.74811],[9.3845,27.14349],[8.71381,27.19375],[8.04312,27.14349],[6.76134,26.74811],[5.65303,25.99249],[4.8167,24.94375],[4.32664,23.6951]]
+    },
+    "status": {
+      "shape": "rounded_rectangle",
+      "contour_xz_mm": [[16.26381,17.91375],[16.76381,17.41375],[26.44381,17.41375],[26.94381,17.91375],[26.94381,19.49375],[26.44381,19.99375],[16.76381,19.99375],[16.26381,19.49375]]
+    },
+    "map": {
+      "shape": "rounded_rectangle",
+      "contour_xz_mm": [[16.26381,21.67375],[16.76381,21.17375],[26.44381,21.17375],[26.94381,21.67375],[26.94381,26.63375],[26.44381,27.13375],[16.76381,27.13375],[16.26381,26.63375]]
+    },
+    "main": {
+      "shape": "sculpted_filleted_polygon",
+      "contour_xz_mm": [[3.66381,31.73376],[4.16381,31.23375],[12.63859,31.23375],[13.06752,31.13709],[13.41353,30.86578],[14.73881,29.24083],[15.20296,28.67172],[15.54897,28.40042],[15.97791,28.30375],[26.44381,28.30375],[26.94381,28.80375],[26.94381,37.10375],[25.94381,38.10376],[14.73881,38.10376],[4.66381,38.10376],[3.66381,37.10375]]
+    }
+  },
+  "alignment": {
+    "status": "estimated_centering_only",
+    "note": "The STL has no registration to the JDI active pixel origin. The simulator must apply translation/rotation from a physical panel and cover measurement before manufacturing.",
+    "do_not_use_for_cad": true
+  }
+}
