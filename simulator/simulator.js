@@ -18,34 +18,34 @@ const ui = {
   grid: document.querySelector('#grid-toggle')
 };
 
-function clear(color = palette.white) { ctx.fillStyle = color; ctx.fillRect(0, 0, SIZE, SIZE); }
-function box(x, y, w, h, color = palette.black) { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); }
-function line(x1, y1, x2, y2, color = palette.black, width = 1) {
+function clear(color = palette.black) { ctx.fillStyle = color; ctx.fillRect(0, 0, SIZE, SIZE); }
+function box(x, y, w, h, color = palette.white) { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); }
+function line(x1, y1, x2, y2, color = palette.white, width = 1) {
   ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
 }
-function text(value, x, y, size, color = palette.black, align = 'left', weight = 700) {
+function text(value, x, y, size, color = palette.white, align = 'left', weight = 700) {
   ctx.fillStyle = color; ctx.font = `${weight} ${size}px monospace`; ctx.textAlign = align; ctx.textBaseline = 'top'; ctx.fillText(value, x, y);
 }
 function ring(x, y, radius, progress, color = palette.green) {
-  ctx.strokeStyle = palette.black; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = palette.white; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.stroke();
   ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
 }
-function header(left, right) { text(left, 9, 79, 7); text(right, 167, 79, 7, palette.black, 'right'); line(8, 89, 168, 89); }
+function header(left, right) { text(left, 9, 79, 7); text(right, 167, 79, 7, palette.white, 'right'); line(8, 89, 168, 89); }
 function grid() {
   if (!ui.grid.checked) return;
-  ctx.save(); ctx.globalAlpha = .18; ctx.strokeStyle = palette.black; ctx.lineWidth = .25;
+  ctx.save(); ctx.globalAlpha = .18; ctx.strokeStyle = palette.white; ctx.lineWidth = .25;
   for (let i = 0; i <= SIZE; i += 4) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, SIZE); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(SIZE, i); ctx.stroke(); }
   ctx.restore();
 }
 function commonTop(label, metric) {
-  ring(38, 38, 24, .72, palette.green); text('72', 38, 29, 13, palette.black, 'center'); text(label, 38, 46, 5, palette.black, 'center');
-  text(metric, 121, 18, 13, palette.black, 'center'); line(85, 37, 158, 37); text('STRATA', 121, 44, 7, palette.blue, 'center');
+  ring(38, 38, 24, .72, palette.green); text('72', 38, 29, 13, palette.white, 'center'); text(label, 38, 46, 5, palette.white, 'center');
+  text(metric, 121, 18, 13, palette.white, 'center'); line(85, 37, 158, 37); text('STRATA', 121, 44, 7, palette.cyan, 'center');
 }
 
 const scenes = [
   {
     name: 'World time', description: 'Local time with two glanceable world clocks.',
-    draw(t) { clear(); commonTop('BAT', 'NYC'); header('MON 18', 'WORLD'); text('10:09', 88, 98, 31, palette.black, 'center'); text('NEW YORK', 88, 136, 7, palette.blue, 'center'); text('LON 15:09', 12, 154, 7); text('TYO 23:09', 164, 154, 7, palette.black, 'right'); box(8, 92, 3, 53, palette.red); }
+    draw(t) { clear(); commonTop('BAT', 'NYC'); header('MON 18', 'WORLD'); text('10:09', 88, 98, 31, palette.white, 'center'); text('NEW YORK', 88, 136, 7, palette.cyan, 'center'); text('LON 15:09', 12, 154, 7); text('TYO 23:09', 164, 154, 7, palette.white, 'right'); box(8, 92, 3, 53, palette.red); }
   },
   {
     name: 'Activity', description: 'Daily movement and recovery at a glance.',
@@ -65,7 +65,7 @@ const scenes = [
   },
   {
     name: 'Timer', description: 'High-contrast timing with unmistakable progress.',
-    draw(t) { clear(); commonTop('TMR', 'RUN'); header('FOCUS', '25:00'); const remaining = Math.max(0, 24 * 60 + 37 - Math.floor((t % SCENE_MS) / 1000)); text(`${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`, 88, 103, 29, palette.black, 'center'); box(15, 143, 146, 8); box(15, 143, 112, 8, palette.green); text('PAUSE  •  RESET', 88, 158, 6, palette.blue, 'center'); }
+    draw(t) { clear(); commonTop('TMR', 'RUN'); header('FOCUS', '25:00'); const remaining = Math.max(0, 24 * 60 + 37 - Math.floor((t % SCENE_MS) / 1000)); text(`${String(Math.floor(remaining / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`, 88, 103, 29, palette.white, 'center'); box(15, 143, 146, 8); box(15, 143, 112, 8, palette.green); text('PAUSE  •  RESET', 88, 158, 6, palette.cyan, 'center'); }
   }
 ];
 

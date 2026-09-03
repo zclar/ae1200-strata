@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Managed by the AE1200 Strata Linux installer -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">AE1200 Strata</title>
+  <desc id="description">A dark digital watch with a segmented memory-in-pixel display</desc>
+  <defs>
+    <linearGradient id="case" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#667068"/>
+      <stop offset="0.48" stop-color="#323a34"/>
+      <stop offset="1" stop-color="#151a17"/>
+    </linearGradient>
+    <linearGradient id="strap" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#151916"/>
+      <stop offset="0.5" stop-color="#303630"/>
+      <stop offset="1" stop-color="#111411"/>
+    </linearGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#050706" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="#0c100d"/>
+  <path d="M174 24h164l22 106H152zM152 382h208l-22 106H174z" fill="url(#strap)"/>
+  <path d="M184 24h144l9 46H175zM175 442h162l-9 46H184z" fill="none" stroke="#515a52" stroke-width="5" opacity="0.6"/>
+
+  <g filter="url(#shadow)">
+    <rect x="72" y="103" width="368" height="306" rx="52" fill="url(#case)" stroke="#7e8980" stroke-width="5"/>
+    <rect x="98" y="129" width="316" height="254" rx="25" fill="#080b09" stroke="#111712" stroke-width="8"/>
+    <rect x="114" y="145" width="284" height="222" rx="10" fill="#111610" stroke="#899487" stroke-width="3"/>
+  </g>
+
+  <!-- AE-1200-inspired faceplate partitions. -->
+  <path d="M114 231h284M236 145v86" fill="none" stroke="#343d35" stroke-width="10"/>
+  <path d="M114 231h284M236 145v86" fill="none" stroke="#697369" stroke-width="2"/>
+
+  <!-- World-map suggestion in the upper-right panel. -->
+  <path d="M268 174l18-13 25 5 13 11 22-4 25 14-10 15-28-1-15 15-23-7-20 8-13-13z"
+        fill="#3d6646"/>
+  <circle cx="326" cy="190" r="6" fill="#c9b83e"/>
+
+  <!-- Compact status dial in the upper-left panel. -->
+  <circle cx="175" cy="188" r="28" fill="none" stroke="#5d685e" stroke-width="7"/>
+  <path d="M175 188l14-17M175 188v-22" stroke="#d0d8cb" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="175" cy="188" r="5" fill="#c9b83e"/>
+
+  <!-- Main digital readout, built from block-like MIP pixels. -->
+  <g fill="#dce0c8">
+    <path d="M145 264h39l7 7-8 8h-31l-7-7zm0 45h38l8 8-8 8h-38l-7-8zm0 45h39l7-8-8-8h-31l-7 7zM137 278l8 7v18l-8 8-7-8v-18zm54 0l7 7v18l-7 8-7-8v-18zm-54 53l8 7v8l-8 8-7-8v-8z"/>
+    <path d="M217 264h39l7 7-8 8h-31l-7-7zm0 45h38l8 8-8 8h-38l-7-8zm0 45h39l7-8-8-8h-31l-7 7zm54-76l7 7v18l-7 8-7-8v-18zm0 53l7 7v8l-7 8-7-8v-8z"/>
+    <path d="M304 264h39l7 7-8 8h-31l-7-7zm0 45h38l8 8-8 8h-38l-7-8zm0 45h39l7-8-8-8h-31l-7 7zM296 278l8 7v18l-8 8-7-8v-18zm54 53l7 7v8l-7 8-7-8v-8z"/>
+  </g>
+  <rect x="283" y="293" width="9" height="9" rx="2" fill="#b83b32"/>
+  <rect x="283" y="326" width="9" height="9" rx="2" fill="#b83b32"/>
+
+  <path d="M88 180H65M447 180h-23M88 319H65M447 319h-23" stroke="#899289" stroke-width="12" stroke-linecap="round"/>
+</svg>

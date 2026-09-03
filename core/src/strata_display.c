@@ -59,49 +59,49 @@ static void label(uint8_t *f, const char *s, int x, int y, int scale, uint8_t co
     }
 }
 
-static void rule(uint8_t *f, int y) { rect(f, 8, y, 160, 1, STRATA_BLACK); }
+static void rule(uint8_t *f, int y) { rect(f, 8, y, 160, 1, STRATA_WHITE); }
 
 static void top(uint8_t *f, const char *left, const char *right)
 {
     rect(f, 12, 13, 51, 43, STRATA_GREEN);
-    rect(f, 16, 17, 43, 35, STRATA_WHITE);
-    label(f, left, 18, 28, 2, STRATA_BLACK);
-    label(f, right, 88, 25, 3, STRATA_BLUE);
+    rect(f, 16, 17, 43, 35, STRATA_BLACK);
+    label(f, left, 18, 28, 2, STRATA_WHITE);
+    label(f, right, 88, 25, 3, STRATA_CYAN);
     rule(f, 72);
 }
 
 static void world(uint8_t *f)
 {
-    top(f, "BAT", "NYC"); label(f, "MON 18", 10, 81, 2, STRATA_BLACK);
-    label(f, "10:09", 27, 104, 8, STRATA_BLACK); label(f, "NEW YORK", 48, 151, 2, STRATA_BLUE);
+    top(f, "BAT", "NYC"); label(f, "MON 18", 10, 81, 2, STRATA_WHITE);
+    label(f, "10:09", 27, 104, 8, STRATA_WHITE); label(f, "NEW YORK", 48, 151, 2, STRATA_CYAN);
 }
 
 static void activity(uint8_t *f)
 {
-    top(f, "MOVE", "84%"); label(f, "TODAY", 10, 81, 2, STRATA_BLACK);
-    rect(f, 14, 106, 18, 52, STRATA_BLACK); rect(f, 38, 121, 18, 37, STRATA_GREEN); rect(f, 62, 136, 18, 22, STRATA_YELLOW);
-    label(f, "8421", 96, 105, 4, STRATA_BLACK); label(f, "STEPS", 96, 129, 2, STRATA_BLUE); label(f, "5.8 KM", 96, 146, 2, STRATA_BLACK);
+    top(f, "MOVE", "84%"); label(f, "TODAY", 10, 81, 2, STRATA_WHITE);
+    rect(f, 14, 106, 18, 52, STRATA_WHITE); rect(f, 38, 121, 18, 37, STRATA_GREEN); rect(f, 62, 136, 18, 22, STRATA_YELLOW);
+    label(f, "8421", 96, 105, 4, STRATA_WHITE); label(f, "STEPS", 96, 129, 2, STRATA_CYAN); label(f, "5.8 KM", 96, 146, 2, STRATA_WHITE);
 }
 
 static void weather(uint8_t *f)
 {
-    top(f, "UV3", "BOS"); label(f, "FORECAST", 10, 81, 2, STRATA_BLACK);
+    top(f, "UV3", "BOS"); label(f, "FORECAST", 10, 81, 2, STRATA_WHITE);
     rect(f, 20, 108, 34, 34, STRATA_YELLOW); rect(f, 28, 100, 18, 50, STRATA_YELLOW); rect(f, 12, 116, 50, 18, STRATA_YELLOW);
-    label(f, "68", 86, 102, 7, STRATA_BLACK); label(f, "CLEAR", 87, 140, 2, STRATA_BLUE); label(f, "H72 L54", 87, 156, 2, STRATA_BLACK);
+    label(f, "68", 86, 102, 7, STRATA_WHITE); label(f, "CLEAR", 87, 140, 2, STRATA_CYAN); label(f, "H72 L54", 87, 156, 2, STRATA_WHITE);
 }
 
 static void navigation(uint8_t *f)
 {
-    top(f, "N", "0.4MI"); label(f, "WALK", 10, 81, 2, STRATA_BLACK);
-    rect(f, 25, 111, 7, 48, STRATA_BLUE); rect(f, 25, 106, 42, 7, STRATA_BLUE); rect(f, 60, 97, 7, 16, STRATA_BLUE);
-    rect(f, 55, 97, 17, 7, STRATA_BLUE); label(f, "TURN", 87, 105, 3, STRATA_BLACK); label(f, "RIGHT", 87, 124, 3, STRATA_BLACK); label(f, "6 MIN", 87, 151, 2, STRATA_GREEN);
+    top(f, "N", "0.4MI"); label(f, "WALK", 10, 81, 2, STRATA_WHITE);
+    rect(f, 25, 111, 7, 48, STRATA_CYAN); rect(f, 25, 106, 42, 7, STRATA_CYAN); rect(f, 60, 97, 7, 16, STRATA_CYAN);
+    rect(f, 55, 97, 17, 7, STRATA_CYAN); label(f, "TURN", 87, 105, 3, STRATA_WHITE); label(f, "RIGHT", 87, 124, 3, STRATA_WHITE); label(f, "6 MIN", 87, 151, 2, STRATA_GREEN);
 }
 
 static void notification(uint8_t *f)
 {
-    top(f, "MSG", "1 NEW"); label(f, "PHONE", 10, 81, 2, STRATA_BLACK);
-    rect(f, 10, 101, 5, 62, STRATA_BLUE); label(f, "ALEX", 25, 101, 3, STRATA_BLUE);
-    label(f, "PROTOTYPE", 25, 124, 2, STRATA_BLACK); label(f, "LOOKS GREAT", 25, 141, 2, STRATA_BLACK); label(f, "10:09", 25, 158, 1, STRATA_BLACK);
+    top(f, "MSG", "1 NEW"); label(f, "PHONE", 10, 81, 2, STRATA_WHITE);
+    rect(f, 10, 101, 5, 62, STRATA_CYAN); label(f, "ALEX", 25, 101, 3, STRATA_CYAN);
+    label(f, "PROTOTYPE", 25, 124, 2, STRATA_WHITE); label(f, "LOOKS GREAT", 25, 141, 2, STRATA_WHITE); label(f, "10:09", 25, 158, 1, STRATA_WHITE);
 }
 
 static void timer(uint8_t *f, uint32_t elapsed_ms)
@@ -111,8 +111,8 @@ static void timer(uint8_t *f, uint32_t elapsed_ms)
     char value[] = "00:00";
     value[0] = (char)('0' + (remaining / 600u) % 10u); value[1] = (char)('0' + (remaining / 60u) % 10u);
     value[3] = (char)('0' + (remaining / 10u) % 6u); value[4] = (char)('0' + remaining % 10u);
-    top(f, "TMR", "RUN"); label(f, "FOCUS", 10, 81, 2, STRATA_BLACK);
-    label(f, value, 27, 108, 8, STRATA_BLACK); rect(f, 15, 153, 146, 7, STRATA_BLACK); rect(f, 15, 153, 112, 7, STRATA_GREEN);
+    top(f, "TMR", "RUN"); label(f, "FOCUS", 10, 81, 2, STRATA_WHITE);
+    label(f, value, 27, 108, 8, STRATA_WHITE); rect(f, 15, 153, 146, 7, STRATA_WHITE); rect(f, 15, 153, 112, 7, STRATA_GREEN);
 }
 
 unsigned int strata_scene_count(void) { return (unsigned int)(sizeof(scenes) / sizeof(scenes[0])); }
@@ -122,10 +122,23 @@ const char *strata_scene_description(unsigned int scene) { return scenes[scene %
 void strata_render(uint8_t *frame, unsigned int scene, uint32_t elapsed_ms)
 {
     if (!frame) return;
-    fill(frame, STRATA_WHITE);
+    fill(frame, STRATA_BLACK);
     switch (scene % strata_scene_count()) {
     case 0: world(frame); break; case 1: activity(frame); break;
     case 2: weather(frame); break; case 3: navigation(frame); break;
     case 4: notification(frame); break; default: timer(frame, elapsed_ms); break;
+    }
+}
+
+void strata_pack_line_rgb111(const uint8_t *frame, unsigned int line,
+                             uint8_t *packed_line)
+{
+    if (!frame || !packed_line || line >= STRATA_HEIGHT) return;
+    const uint8_t *pixels = frame + line * STRATA_WIDTH;
+    for (unsigned int x = 0; x < STRATA_WIDTH; x += 2) {
+        /* JDI 4-bit color update format is RGB0, most-significant pixel first. */
+        uint8_t first = (uint8_t)((pixels[x] & 0x07u) << 1);
+        uint8_t second = (uint8_t)((pixels[x + 1] & 0x07u) << 1);
+        packed_line[x / 2] = (uint8_t)((first << 4) | second);
     }
 }

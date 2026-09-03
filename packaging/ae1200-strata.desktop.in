@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=AE1200 Strata
+GenericName=Watch Display Simulator
+Comment=Preview the AE1200 Strata MIP display demo
+Exec=@EXEC@
+Icon=ae1200-strata
+Terminal=false
+Categories=Development;
+Keywords=AE1200;watch;display;simulator;MIP;
+StartupNotify=true
+X-AE1200-Strata-Managed=true

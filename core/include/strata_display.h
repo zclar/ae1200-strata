@@ -6,6 +6,7 @@
 #define STRATA_WIDTH 176
 #define STRATA_HEIGHT 176
 #define STRATA_FRAME_BYTES (STRATA_WIDTH * STRATA_HEIGHT)
+#define STRATA_PACKED_LINE_BYTES (STRATA_WIDTH / 2)
 
 enum strata_color {
     STRATA_BLACK = 0,
@@ -22,5 +23,7 @@ unsigned int strata_scene_count(void);
 const char *strata_scene_name(unsigned int scene);
 const char *strata_scene_description(unsigned int scene);
 void strata_render(uint8_t *frame, unsigned int scene, uint32_t elapsed_ms);
+void strata_pack_line_rgb111(const uint8_t *frame, unsigned int line,
+                             uint8_t *packed_line);
 
 #endif

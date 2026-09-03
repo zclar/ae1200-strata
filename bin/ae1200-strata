@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+strata_source=${BASH_SOURCE[0]}
+while [[ -L "$strata_source" ]]; do
+    strata_source_dir=$(cd -P "$(dirname "$strata_source")" >/dev/null 2>&1 && pwd)
+    strata_link_target=$(readlink "$strata_source")
+    if [[ "$strata_link_target" == /* ]]; then
+        strata_source=$strata_link_target
+    else
+        strata_source=$strata_source_dir/$strata_link_target
+    fi
+done
+
+strata_bin_dir=$(cd -P "$(dirname "$strata_source")" >/dev/null 2>&1 && pwd)
+strata_root=$(cd "$strata_bin_dir/.." >/dev/null 2>&1 && pwd -P)
+strata_source_file=$strata_root/core/src/strata_display.c
+strata_header_file=$strata_root/core/include/strata_display.h
+strata_library=$strata_root/build/libstrata_display.so
+strata_simulator=$strata_root/native/simulator.py
+strata_force_build=false
+strata_check_only=false
+strata_temp_library=
+
+strata_usage() {
+    cat <<'EOF'
+Usage: ae1200-strata [--check | --rebuild]
+
+Launch the AE1200 Strata native display simulator.
+
+  --check    Build if needed and verify runtime dependencies without opening a window
+  --rebuild  Rebuild the shared renderer before launching
+  -h, --help Show this help
+
+The CC, CFLAGS, LDFLAGS, and PYTHON environment variables may be used to
+override the default compiler, build flags, linker flags, and Python runtime.
+EOF
+}
+
+strata_die() {
+    local strata_message=$1
+    printf 'AE1200 Strata: %s\n' "$strata_message" >&2
+    if [[ ! -t 2 ]] && command -v zenity >/dev/null 2>&1; then
+        zenity --error --title='AE1200 Strata' --text="$strata_message" \
+            >/dev/null 2>&1 || true
+    fi
+    exit 1
+}
+
+strata_cleanup() {
+    if [[ -n "$strata_temp_library" && -e "$strata_temp_library" ]]; then
+        rm -f -- "$strata_temp_library"
+    fi
+}
+trap strata_cleanup EXIT
+
+while (($#)); do
+    case $1 in
+        --check)
+            strata_check_only=true
+            ;;
+        --rebuild)
+            strata_force_build=true
+            ;;
+        -h|--help)
+            strata_usage
+            exit 0
+            ;;
+        *)
+            strata_usage >&2
+            strata_die "unknown option: $1"
+            ;;
+    esac
+    shift
+done
+
+[[ -f "$strata_source_file" ]] || strata_die "renderer source is missing: $strata_source_file"
+[[ -f "$strata_header_file" ]] || strata_die "renderer header is missing: $strata_header_file"
+[[ -f "$strata_simulator" ]] || strata_die "simulator is missing: $strata_simulator"
+
+strata_needs_build=$strata_force_build
+if [[ ! -f "$strata_library" || "$strata_source_file" -nt "$strata_library" || "$strata_header_file" -nt "$strata_library" ]]; then
+    strata_needs_build=true
+fi
+
+if [[ "$strata_needs_build" == true ]]; then
+    read -r -a strata_cc_command <<<"${CC:-cc}"
+    ((${#strata_cc_command[@]})) || strata_die 'CC is empty'
+    command -v "${strata_cc_command[0]}" >/dev/null 2>&1 || \
+        strata_die "C compiler not found: ${strata_cc_command[0]}"
+
+    if [[ -n "${CFLAGS:-}" ]]; then
+        read -r -a strata_compile_flags <<<"$CFLAGS"
+    else
+        strata_compile_flags=(-std=c11 -O2 -Wall -Wextra -Werror)
+    fi
+    if [[ -n "${LDFLAGS:-}" ]]; then
+        read -r -a strata_link_flags <<<"$LDFLAGS"
+    else
+        strata_link_flags=()
+    fi
+
+    mkdir -p "$strata_root/build"
+    strata_temp_library=$strata_library.tmp.$$
+    printf 'Building AE1200 Strata renderer...\n'
+    if ! "${strata_cc_command[@]}" "${strata_compile_flags[@]}" -fPIC -shared \
+        -I"$strata_root/core/include" "$strata_source_file" \
+        "${strata_link_flags[@]}" -o "$strata_temp_library"; then
+        strata_die 'the shared renderer failed to build; see compiler output above'
+    fi
+    mv -f -- "$strata_temp_library" "$strata_library"
+    strata_temp_library=
+fi
+
+read -r -a strata_python_command <<<"${PYTHON:-python3}"
+((${#strata_python_command[@]})) || strata_die 'PYTHON is empty'
+command -v "${strata_python_command[0]}" >/dev/null 2>&1 || \
+    strata_die "Python runtime not found: ${strata_python_command[0]}"
+
+if ! strata_dependency_error=$(
+    "${strata_python_command[@]}" -c \
+        'import ctypes, sys, tkinter; ctypes.CDLL(sys.argv[1])' \
+        "$strata_library" 2>&1
+); then
+    strata_die "Python, Tk, or the shared renderer could not load: $strata_dependency_error"
+fi
+
+if [[ "$strata_check_only" == true ]]; then
+    printf 'AE1200 Strata is ready.\n'
+    printf 'Repository: %s\n' "$strata_root"
+    printf 'Renderer:   %s\n' "$strata_library"
+    exit 0
+fi
+
+cd "$strata_root"
+exec "${strata_python_command[@]}" "$strata_simulator"

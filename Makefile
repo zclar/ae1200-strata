@@ -3,14 +3,20 @@ CFLAGS ?= -std=c11 -O2 -Wall -Wextra -Werror
 BUILD := build
 CORE := core/src/strata_display.c
 
-.PHONY: simulator test clean
+.PHONY: app simulator install-app uninstall-app test clean
 
 $(BUILD)/libstrata_display.so: $(CORE) core/include/strata_display.h
 	mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -fPIC -shared -Icore/include $(CORE) -o $@
 
-simulator: $(BUILD)/libstrata_display.so
-	python3 native/simulator.py
+app simulator:
+	./bin/ae1200-strata
+
+install-app:
+	./packaging/install-linux.sh
+
+uninstall-app:
+	./packaging/uninstall-linux.sh
 
 test: $(BUILD)/libstrata_display.so
 	python3 -m py_compile native/simulator.py
