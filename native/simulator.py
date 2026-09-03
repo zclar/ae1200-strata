@@ -15,7 +15,7 @@ LIB.strata_scene_description.restype = ctypes.c_char_p
 COLORS = ((17, 22, 16), (61, 102, 142), (78, 140, 73), (101, 163, 157),
           (184, 59, 50), (140, 86, 125), (201, 184, 62), (220, 224, 200))
 FACEPLATE = (24, 28, 24)
-SEGMENT_BACKGROUND = (96, 101, 94)
+SEGMENT_BACKGROUND = (112, 116, 108)
 PITCH = GEOMETRY["display"]["pixel_pitch_mm"]
 # Center the community cover's measured aperture field over the JDI active area.
 X0 = 3.66381 - (23.28 - 23.0208) / 2

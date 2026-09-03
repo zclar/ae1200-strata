@@ -125,17 +125,31 @@ static void disc(uint8_t *f, int cx, int cy, int radius, uint8_t color)
                 rect(f, cx + x, cy + y, 1, 1, color);
 }
 
+static void bluetooth(uint8_t *f, int x, int y, uint8_t color)
+{
+    rect(f, x + 3, y, 2, 14, color); rect(f, x + 5, y + 2, 3, 2, color);
+    rect(f, x + 6, y + 4, 2, 2, color); rect(f, x + 5, y + 6, 3, 2, color);
+    rect(f, x + 6, y + 8, 2, 2, color); rect(f, x + 5, y + 10, 3, 2, color);
+    rect(f, x, y + 3, 2, 2, color); rect(f, x + 1, y + 5, 3, 2, color);
+    rect(f, x, y + 9, 2, 2, color); rect(f, x + 1, y + 7, 3, 2, color);
+}
+
 static void segment_face(uint8_t *f)
 {
-    /* Upper-left Ø9 mm opening: a deliberately low-resolution pixel dial. */
+    /* Classic AE-1200-inspired face, fitted to the measured openings. */
     disc(f, 40, 49, 33, STRATA_GREEN); disc(f, 40, 49, 29, STRATA_BLACK);
     rect(f, 39, 17, 2, 10, STRATA_WHITE); rect(f, 39, 71, 2, 10, STRATA_WHITE);
     rect(f, 8, 48, 10, 2, STRATA_WHITE); rect(f, 62, 48, 10, 2, STRATA_WHITE);
+    label(f, "12", 35, 20, 2, STRATA_WHITE); label(f, "6", 37, 68, 2, STRATA_WHITE);
     rect(f, 40, 27, 3, 23, STRATA_CYAN); rect(f, 40, 48, 22, 3, STRATA_CYAN);
     disc(f, 40, 49, 4, STRATA_YELLOW);
-    label(f, "12", 105, 12, 2, STRATA_WHITE); label(f, "UTC", 105, 43, 2, STRATA_CYAN);
-    label(f, "MON", 105, 66, 2, STRATA_WHITE);
-    label(f, "10:09", 19, 105, 7, STRATA_WHITE); label(f, "NEW YORK", 54, 151, 2, STRATA_CYAN);
+    label(f, "WR", 105, 12, 2, STRATA_WHITE);
+    rect(f, 101, 42, 9, 10, STRATA_GREEN); rect(f, 111, 38, 12, 14, STRATA_GREEN);
+    rect(f, 124, 46, 13, 8, STRATA_GREEN); rect(f, 138, 40, 11, 16, STRATA_GREEN);
+    rect(f, 151, 50, 18, 9, STRATA_GREEN); rect(f, 116, 58, 9, 13, STRATA_GREEN);
+    label(f, "CITY", 105, 70, 2, STRATA_CYAN);
+    label(f, "10:09", 19, 105, 7, STRATA_WHITE); label(f, "MON 18", 46, 151, 2, STRATA_CYAN);
+    bluetooth(f, 164, 96, STRATA_CYAN);
 }
 
 static void segment_dashboard(uint8_t *f)
