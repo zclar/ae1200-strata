@@ -4,14 +4,7 @@
 
 struct scene_info { const char *name; const char *description; };
 static const struct scene_info scenes[] = {
-    {"World time", "Local time and global context."},
-    {"Activity", "Daily movement and recovery."},
-    {"Weather", "Current conditions and forecast."},
-    {"Navigation", "Glanceable turn guidance."},
-    {"Notification", "A quiet message preview."},
-    {"Timer", "High-contrast focus timing."},
-    {"Segment face", "A pixel-first face fitted to every cover opening."},
-    {"Segment dashboard", "Chunky status graphics composed around the mask."},
+    {"Classic AE1200", "A monochrome Royale-style face fitted to the cover."},
 };
 
 /* 3x5 glyphs, encoded left-to-right in each group of three bits. */
@@ -61,60 +54,26 @@ static void label(uint8_t *f, const char *s, int x, int y, int scale, uint8_t co
     }
 }
 
-static void rule(uint8_t *f, int y) { rect(f, 8, y, 160, 1, STRATA_WHITE); }
-
-static void top(uint8_t *f, const char *left, const char *right)
+static void seven_digit(uint8_t *f, unsigned int digit, int x, int y, uint8_t color)
 {
-    rect(f, 12, 13, 51, 43, STRATA_GREEN);
-    rect(f, 16, 17, 43, 35, STRATA_BLACK);
-    label(f, left, 18, 28, 2, STRATA_WHITE);
-    label(f, right, 88, 25, 3, STRATA_CYAN);
-    rule(f, 72);
+    static const uint8_t segments[] = {
+        0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f,
+    };
+    uint8_t on = segments[digit % 10u];
+    if (on & 0x01) rect(f, x + 3, y, 14, 3, color);
+    if (on & 0x02) rect(f, x + 17, y + 3, 3, 13, color);
+    if (on & 0x04) rect(f, x + 17, y + 18, 3, 13, color);
+    if (on & 0x08) rect(f, x + 3, y + 31, 14, 3, color);
+    if (on & 0x10) rect(f, x, y + 18, 3, 13, color);
+    if (on & 0x20) rect(f, x, y + 3, 3, 13, color);
+    if (on & 0x40) rect(f, x + 3, y + 15, 14, 3, color);
 }
 
-static void world(uint8_t *f)
+static void classic_time(uint8_t *f, int x, int y, uint8_t color)
 {
-    top(f, "BAT", "NYC"); label(f, "MON 18", 10, 81, 2, STRATA_WHITE);
-    label(f, "10:09", 27, 104, 8, STRATA_WHITE); label(f, "NEW YORK", 48, 151, 2, STRATA_CYAN);
-}
-
-static void activity(uint8_t *f)
-{
-    top(f, "MOVE", "84%"); label(f, "TODAY", 10, 81, 2, STRATA_WHITE);
-    rect(f, 14, 106, 18, 52, STRATA_WHITE); rect(f, 38, 121, 18, 37, STRATA_GREEN); rect(f, 62, 136, 18, 22, STRATA_YELLOW);
-    label(f, "8421", 96, 105, 4, STRATA_WHITE); label(f, "STEPS", 96, 129, 2, STRATA_CYAN); label(f, "5.8 KM", 96, 146, 2, STRATA_WHITE);
-}
-
-static void weather(uint8_t *f)
-{
-    top(f, "UV3", "BOS"); label(f, "FORECAST", 10, 81, 2, STRATA_WHITE);
-    rect(f, 20, 108, 34, 34, STRATA_YELLOW); rect(f, 28, 100, 18, 50, STRATA_YELLOW); rect(f, 12, 116, 50, 18, STRATA_YELLOW);
-    label(f, "68", 86, 102, 7, STRATA_WHITE); label(f, "CLEAR", 87, 140, 2, STRATA_CYAN); label(f, "H72 L54", 87, 156, 2, STRATA_WHITE);
-}
-
-static void navigation(uint8_t *f)
-{
-    top(f, "N", "0.4MI"); label(f, "WALK", 10, 81, 2, STRATA_WHITE);
-    rect(f, 25, 111, 7, 48, STRATA_CYAN); rect(f, 25, 106, 42, 7, STRATA_CYAN); rect(f, 60, 97, 7, 16, STRATA_CYAN);
-    rect(f, 55, 97, 17, 7, STRATA_CYAN); label(f, "TURN", 87, 105, 3, STRATA_WHITE); label(f, "RIGHT", 87, 124, 3, STRATA_WHITE); label(f, "6 MIN", 87, 151, 2, STRATA_GREEN);
-}
-
-static void notification(uint8_t *f)
-{
-    top(f, "MSG", "1 NEW"); label(f, "PHONE", 10, 81, 2, STRATA_WHITE);
-    rect(f, 10, 101, 5, 62, STRATA_CYAN); label(f, "ALEX", 25, 101, 3, STRATA_CYAN);
-    label(f, "PROTOTYPE", 25, 124, 2, STRATA_WHITE); label(f, "LOOKS GREAT", 25, 141, 2, STRATA_WHITE); label(f, "10:09", 25, 158, 1, STRATA_WHITE);
-}
-
-static void timer(uint8_t *f, uint32_t elapsed_ms)
-{
-    unsigned int seconds = 37u + elapsed_ms / 1000u;
-    unsigned int remaining = seconds < 25u * 60u ? 25u * 60u - seconds : 0;
-    char value[] = "00:00";
-    value[0] = (char)('0' + (remaining / 600u) % 10u); value[1] = (char)('0' + (remaining / 60u) % 10u);
-    value[3] = (char)('0' + (remaining / 10u) % 6u); value[4] = (char)('0' + remaining % 10u);
-    top(f, "TMR", "RUN"); label(f, "FOCUS", 10, 81, 2, STRATA_WHITE);
-    label(f, value, 27, 108, 8, STRATA_WHITE); rect(f, 15, 153, 146, 7, STRATA_WHITE); rect(f, 15, 153, 112, 7, STRATA_GREEN);
+    seven_digit(f, 1, x, y, color); seven_digit(f, 0, x + 24, y, color);
+    rect(f, x + 47, y + 10, 3, 3, color); rect(f, x + 47, y + 22, 3, 3, color);
+    seven_digit(f, 0, x + 55, y, color); seven_digit(f, 9, x + 79, y, color);
 }
 
 static void disc(uint8_t *f, int cx, int cy, int radius, uint8_t color)
@@ -137,33 +96,22 @@ static void bluetooth(uint8_t *f, int x, int y, uint8_t color)
 static void segment_face(uint8_t *f)
 {
     /* Classic AE-1200-inspired face, fitted to the measured openings. */
-    disc(f, 40, 49, 33, STRATA_GREEN); disc(f, 40, 49, 29, STRATA_BLACK);
-    rect(f, 39, 17, 2, 10, STRATA_WHITE); rect(f, 39, 71, 2, 10, STRATA_WHITE);
-    rect(f, 8, 48, 10, 2, STRATA_WHITE); rect(f, 62, 48, 10, 2, STRATA_WHITE);
-    label(f, "12", 35, 20, 2, STRATA_WHITE); label(f, "6", 37, 68, 2, STRATA_WHITE);
-    rect(f, 40, 27, 3, 23, STRATA_CYAN); rect(f, 40, 48, 22, 3, STRATA_CYAN);
-    disc(f, 40, 49, 4, STRATA_YELLOW);
-    label(f, "WR", 105, 12, 2, STRATA_WHITE);
-    rect(f, 101, 42, 9, 10, STRATA_GREEN); rect(f, 111, 38, 12, 14, STRATA_GREEN);
-    rect(f, 124, 46, 13, 8, STRATA_GREEN); rect(f, 138, 40, 11, 16, STRATA_GREEN);
-    rect(f, 151, 50, 18, 9, STRATA_GREEN); rect(f, 116, 58, 9, 13, STRATA_GREEN);
-    label(f, "CITY", 105, 70, 2, STRATA_CYAN);
-    label(f, "10:09", 19, 105, 7, STRATA_WHITE); label(f, "MON 18", 46, 151, 2, STRATA_CYAN);
-    bluetooth(f, 164, 96, STRATA_CYAN);
-}
+    disc(f, 40, 49, 27, STRATA_BLACK); disc(f, 40, 49, 24, STRATA_WHITE);
+    rect(f, 39, 23, 2, 7, STRATA_BLACK); rect(f, 39, 68, 2, 7, STRATA_BLACK);
+    rect(f, 14, 48, 7, 2, STRATA_BLACK); rect(f, 59, 48, 7, 2, STRATA_BLACK);
+    label(f, "12", 35, 25, 1, STRATA_BLACK); label(f, "6", 38, 69, 1, STRATA_BLACK);
+    rect(f, 40, 31, 2, 19, STRATA_BLACK); rect(f, 40, 48, 17, 2, STRATA_BLACK);
+    disc(f, 40, 49, 3, STRATA_BLACK);
 
-static void segment_dashboard(uint8_t *f)
-{
-    disc(f, 40, 49, 33, STRATA_BLUE); disc(f, 40, 49, 29, STRATA_BLACK);
-    rect(f, 38, 19, 5, 16, STRATA_WHITE); rect(f, 38, 63, 5, 16, STRATA_WHITE);
-    rect(f, 10, 47, 16, 5, STRATA_WHITE); rect(f, 54, 47, 16, 5, STRATA_WHITE);
-    rect(f, 40, 32, 3, 25, STRATA_YELLOW); rect(f, 40, 48, 19, 3, STRATA_YELLOW);
-    disc(f, 40, 49, 3, STRATA_RED);
-    label(f, "84%", 103, 12, 2, STRATA_YELLOW); label(f, "BOS", 106, 43, 2, STRATA_CYAN);
-    label(f, "RUN", 106, 66, 2, STRATA_WHITE);
-    label(f, "42%", 40, 104, 8, STRATA_WHITE);
-    rect(f, 16, 153, 144, 6, STRATA_WHITE); rect(f, 16, 153, 91, 6, STRATA_GREEN);
-    label(f, "BATTERY", 16, 161, 1, STRATA_CYAN);
+    label(f, "WR", 111, 14, 1, STRATA_BLACK);
+    rect(f, 105, 44, 7, 8, STRATA_BLACK); rect(f, 113, 41, 10, 11, STRATA_BLACK);
+    rect(f, 125, 47, 11, 7, STRATA_BLACK); rect(f, 138, 43, 9, 13, STRATA_BLACK);
+    rect(f, 149, 51, 16, 7, STRATA_BLACK); rect(f, 117, 59, 8, 10, STRATA_BLACK);
+    label(f, "CITY", 112, 72, 1, STRATA_BLACK);
+
+    classic_time(f, 37, 120, STRATA_BLACK);
+    label(f, "MON 18", 66, 158, 1, STRATA_BLACK);
+    bluetooth(f, 158, 99, STRATA_BLACK);
 }
 
 unsigned int strata_scene_count(void) { return (unsigned int)(sizeof(scenes) / sizeof(scenes[0])); }
@@ -172,14 +120,11 @@ const char *strata_scene_description(unsigned int scene) { return scenes[scene %
 
 void strata_render(uint8_t *frame, unsigned int scene, uint32_t elapsed_ms)
 {
+    (void)scene;
+    (void)elapsed_ms;
     if (!frame) return;
-    fill(frame, STRATA_BLACK);
-    switch (scene % strata_scene_count()) {
-    case 0: world(frame); break; case 1: activity(frame); break;
-    case 2: weather(frame); break; case 3: navigation(frame); break;
-    case 4: notification(frame); break; case 5: timer(frame, elapsed_ms); break;
-    case 6: segment_face(frame); break; default: segment_dashboard(frame); break;
-    }
+    fill(frame, STRATA_WHITE);
+    segment_face(frame);
 }
 
 void strata_pack_line_rgb111(const uint8_t *frame, unsigned int line,

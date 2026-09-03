@@ -2,7 +2,6 @@
 import ctypes
 import json
 import pathlib
-import time
 import tkinter as tk
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -12,15 +11,14 @@ LIB.strata_scene_count.restype = ctypes.c_uint
 LIB.strata_scene_name.restype = ctypes.c_char_p
 LIB.strata_scene_description.restype = ctypes.c_char_p
 
-COLORS = ((17, 22, 16), (61, 102, 142), (78, 140, 73), (101, 163, 157),
-          (184, 59, 50), (140, 86, 125), (201, 184, 62), (220, 224, 200))
+COLORS = ((24, 29, 24), (61, 102, 142), (78, 140, 73), (101, 163, 157),
+          (184, 59, 50), (140, 86, 125), (201, 184, 62), (169, 176, 162))
 FACEPLATE = (24, 28, 24)
-SEGMENT_BACKGROUND = (112, 116, 108)
 PITCH = GEOMETRY["display"]["pixel_pitch_mm"]
 # Center the community cover's measured aperture field over the JDI active area.
 X0 = 3.66381 - (23.28 - 23.0208) / 2
 Z0 = 17.41375 - (23.0208 - (38.10376 - 17.41375)) / 2
-SIZE, SCALE, SCENE_MS = 176, 3, 5000
+SIZE, SCALE = 176, 3
 OUTER_W = round(30.6276 / PITCH * SCALE)
 OUTER_H = round(29.3500 / PITCH * SCALE)
 PANEL_OX = round(X0 / PITCH * SCALE)
@@ -45,46 +43,33 @@ def visible(x, y):
 
 class Simulator:
     def __init__(self, root):
-        self.root, self.scene, self.playing = root, 0, True
-        self.started, self.frame = time.monotonic(), Frame()
+        self.root, self.scene, self.frame = root, 0, Frame()
         root.title("AE1200 Emulator — Native Simulator")
         root.configure(bg="#111410")
         self.canvas = tk.Canvas(root, width=OUTER_W, height=OUTER_H,
                                 bg="#111610", highlightthickness=12,
                                 highlightbackground="#30362f")
-        self.canvas.grid(row=0, column=0, rowspan=5, padx=24, pady=24)
+        self.canvas.grid(row=0, column=0, rowspan=4, padx=24, pady=24)
         self.title = tk.Label(root, fg="#e9eee5", bg="#111410", font=("Sans", 18, "bold"))
         self.title.grid(row=0, column=1, sticky="sw", padx=(0, 24))
         self.description = tk.Label(root, fg="#aeb6aa", bg="#111410", wraplength=230, justify="left")
         self.description.grid(row=1, column=1, sticky="nw", padx=(0, 24))
-        controls = tk.Frame(root, bg="#111410"); controls.grid(row=2, column=1, sticky="new", padx=(0, 24))
-        tk.Button(controls, text="←", command=lambda: self.select(-1)).pack(side="left")
-        self.play = tk.Button(controls, text="Pause", command=self.toggle); self.play.pack(side="left", padx=8)
-        tk.Button(controls, text="→", command=lambda: self.select(1)).pack(side="left")
         self.mask = tk.BooleanVar(value=True)
         tk.Checkbutton(root, text="Reference faceplate mask (unverified)", variable=self.mask, command=self.draw,
-                       fg="#c2c9bd", bg="#111410", selectcolor="#242a22").grid(row=3, column=1, sticky="nw")
-        tk.Label(root, text="30.63 × 29.35 mm cover  •  23.02 mm active", fg="#788174", bg="#111410").grid(row=4, column=1, sticky="nw")
-        # Start with the two layouts designed specifically for the segmented cover.
-        self.select(LIB.strata_scene_count() - 2, absolute=True); self.tick()
+                       fg="#c2c9bd", bg="#111410", selectcolor="#242a22").grid(row=2, column=1, sticky="nw")
+        tk.Label(root, text="30.63 × 29.35 mm cover  •  23.02 mm active", fg="#788174", bg="#111410").grid(row=3, column=1, sticky="nw")
+        self.select(0)
 
-    def select(self, amount, absolute=False):
-        self.scene = amount % LIB.strata_scene_count() if absolute else (self.scene + amount) % LIB.strata_scene_count()
-        self.started = time.monotonic()
+    def select(self, scene):
+        self.scene = scene
         self.title.config(text=LIB.strata_scene_name(self.scene).decode())
         self.description.config(text=LIB.strata_scene_description(self.scene).decode())
         self.draw()
 
-    def toggle(self):
-        self.playing = not self.playing; self.started = time.monotonic()
-        self.play.config(text="Pause" if self.playing else "Play")
-
     def draw(self):
-        elapsed = int((time.monotonic() - self.started) * 1000)
-        LIB.strata_render(self.frame, self.scene, elapsed)
+        LIB.strata_render(self.frame, self.scene, 0)
         header = f"P6\n{SIZE} {SIZE}\n255\n".encode()
-        pixels = b''.join(bytes(SEGMENT_BACKGROUND if self.mask.get() and p == 0
-                                else COLORS[p]) if not self.mask.get() or visible(i % SIZE, i // SIZE)
+        pixels = b''.join(bytes(COLORS[p]) if not self.mask.get() or visible(i % SIZE, i // SIZE)
                            else bytes(FACEPLATE)
                           for i, p in enumerate(self.frame))
         image = tk.PhotoImage(data=header + pixels, format="PPM").zoom(SCALE)
@@ -96,12 +81,6 @@ class Simulator:
             for polygon in APERTURES:
                 points = [(PANEL_OX + x * SCALE, PANEL_OY + y * SCALE) for x, y in polygon]
                 self.canvas.create_polygon(points, outline="#697369", fill="", width=1)
-
-    def tick(self):
-        elapsed = (time.monotonic() - self.started) * 1000
-        if self.playing and elapsed >= SCENE_MS: self.select(1)
-        elif self.scene == 5: self.draw()
-        self.root.after(100, self.tick)
 
 if __name__ == "__main__":
     window = tk.Tk(); Simulator(window); window.mainloop()

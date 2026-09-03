@@ -10,7 +10,7 @@ lib.strata_scene_count.restype = ctypes.c_uint
 size = 176 * 176
 frame_type = ctypes.c_uint8 * size
 packed_type = ctypes.c_uint8 * (176 // 2)
-assert lib.strata_scene_count() == 8
+assert lib.strata_scene_count() == 1
 
 hashes = set()
 for scene in range(lib.strata_scene_count()):
