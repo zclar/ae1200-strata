@@ -14,7 +14,7 @@ the compiler, Python/Tk runtime, and shared library without opening a window:
 ./bin/ae1200-strata --check
 ```
 
-To add **AE1200 Strata** to the current user's Linux application menu:
+To add **AE1200 Emulator** to the current user's Linux application menu:
 
 ```sh
 ./packaging/install-linux.sh

@@ -42,7 +42,7 @@ class Simulator:
     def __init__(self, root):
         self.root, self.scene, self.playing = root, 0, True
         self.started, self.frame = time.monotonic(), Frame()
-        root.title("AE1200 Strata — Native Simulator")
+        root.title("AE1200 Emulator — Native Simulator")
         root.configure(bg="#111410")
         self.canvas = tk.Canvas(root, width=SIZE*SCALE, height=SIZE*SCALE,
                                 bg="#111610", highlightthickness=12,
@@ -81,6 +81,10 @@ class Simulator:
                           for i, p in enumerate(self.frame))
         image = tk.PhotoImage(data=header + pixels, format="PPM").zoom(SCALE)
         self.image = image; self.canvas.delete("all"); self.canvas.create_image(0, 0, image=image, anchor="nw")
+        if self.mask.get():
+            for polygon in APERTURES:
+                points = [(x * SCALE, y * SCALE) for x, y in polygon]
+                self.canvas.create_polygon(points, outline="#697369", fill="", width=1)
 
     def tick(self):
         elapsed = (time.monotonic() - self.started) * 1000

@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Version=1.0
-Name=AE1200 Strata
+Name=AE1200 Emulator
 GenericName=Watch Display Simulator
 Comment=Preview the AE1200 Strata MIP display demo
 Exec=@EXEC@
