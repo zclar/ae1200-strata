@@ -15,6 +15,7 @@ LIB.strata_scene_description.restype = ctypes.c_char_p
 COLORS = ((17, 22, 16), (61, 102, 142), (78, 140, 73), (101, 163, 157),
           (184, 59, 50), (140, 86, 125), (201, 184, 62), (220, 224, 200))
 FACEPLATE = (24, 28, 24)
+SEGMENT_BACKGROUND = (96, 101, 94)
 PITCH = GEOMETRY["display"]["pixel_pitch_mm"]
 # Center the community cover's measured aperture field over the JDI active area.
 X0 = 3.66381 - (23.28 - 23.0208) / 2
@@ -64,7 +65,8 @@ class Simulator:
         tk.Checkbutton(root, text="Reference faceplate mask (unverified)", variable=self.mask, command=self.draw,
                        fg="#c2c9bd", bg="#111410", selectcolor="#242a22").grid(row=3, column=1, sticky="nw")
         tk.Label(root, text="30.63 × 29.35 mm cover  •  23.02 mm active", fg="#788174", bg="#111410").grid(row=4, column=1, sticky="nw")
-        self.select(0, absolute=True); self.tick()
+        # Start with the two layouts designed specifically for the segmented cover.
+        self.select(LIB.strata_scene_count() - 2, absolute=True); self.tick()
 
     def select(self, amount, absolute=False):
         self.scene = amount % LIB.strata_scene_count() if absolute else (self.scene + amount) % LIB.strata_scene_count()
@@ -81,7 +83,9 @@ class Simulator:
         elapsed = int((time.monotonic() - self.started) * 1000)
         LIB.strata_render(self.frame, self.scene, elapsed)
         header = f"P6\n{SIZE} {SIZE}\n255\n".encode()
-        pixels = b''.join(bytes(COLORS[p] if not self.mask.get() or visible(i % SIZE, i // SIZE) else FACEPLATE)
+        pixels = b''.join(bytes(SEGMENT_BACKGROUND if self.mask.get() and p == 0
+                                else COLORS[p]) if not self.mask.get() or visible(i % SIZE, i // SIZE)
+                           else bytes(FACEPLATE)
                           for i, p in enumerate(self.frame))
         image = tk.PhotoImage(data=header + pixels, format="PPM").zoom(SCALE)
         self.image = image; self.canvas.delete("all")

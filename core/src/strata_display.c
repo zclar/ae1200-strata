@@ -10,6 +10,8 @@ static const struct scene_info scenes[] = {
     {"Navigation", "Glanceable turn guidance."},
     {"Notification", "A quiet message preview."},
     {"Timer", "High-contrast focus timing."},
+    {"Segment face", "A pixel-first face fitted to every cover opening."},
+    {"Segment dashboard", "Chunky status graphics composed around the mask."},
 };
 
 /* 3x5 glyphs, encoded left-to-right in each group of three bits. */
@@ -115,6 +117,41 @@ static void timer(uint8_t *f, uint32_t elapsed_ms)
     label(f, value, 27, 108, 8, STRATA_WHITE); rect(f, 15, 153, 146, 7, STRATA_WHITE); rect(f, 15, 153, 112, 7, STRATA_GREEN);
 }
 
+static void disc(uint8_t *f, int cx, int cy, int radius, uint8_t color)
+{
+    for (int y = -radius; y <= radius; ++y)
+        for (int x = -radius; x <= radius; ++x)
+            if (x * x + y * y <= radius * radius)
+                rect(f, cx + x, cy + y, 1, 1, color);
+}
+
+static void segment_face(uint8_t *f)
+{
+    /* Upper-left Ø9 mm opening: a deliberately low-resolution pixel dial. */
+    disc(f, 40, 49, 33, STRATA_GREEN); disc(f, 40, 49, 29, STRATA_BLACK);
+    rect(f, 39, 17, 2, 10, STRATA_WHITE); rect(f, 39, 71, 2, 10, STRATA_WHITE);
+    rect(f, 8, 48, 10, 2, STRATA_WHITE); rect(f, 62, 48, 10, 2, STRATA_WHITE);
+    rect(f, 40, 27, 3, 23, STRATA_CYAN); rect(f, 40, 48, 22, 3, STRATA_CYAN);
+    disc(f, 40, 49, 4, STRATA_YELLOW);
+    label(f, "12", 105, 12, 2, STRATA_WHITE); label(f, "UTC", 105, 43, 2, STRATA_CYAN);
+    label(f, "MON", 105, 66, 2, STRATA_WHITE);
+    label(f, "10:09", 19, 105, 7, STRATA_WHITE); label(f, "NEW YORK", 54, 151, 2, STRATA_CYAN);
+}
+
+static void segment_dashboard(uint8_t *f)
+{
+    disc(f, 40, 49, 33, STRATA_BLUE); disc(f, 40, 49, 29, STRATA_BLACK);
+    rect(f, 38, 19, 5, 16, STRATA_WHITE); rect(f, 38, 63, 5, 16, STRATA_WHITE);
+    rect(f, 10, 47, 16, 5, STRATA_WHITE); rect(f, 54, 47, 16, 5, STRATA_WHITE);
+    rect(f, 40, 32, 3, 25, STRATA_YELLOW); rect(f, 40, 48, 19, 3, STRATA_YELLOW);
+    disc(f, 40, 49, 3, STRATA_RED);
+    label(f, "84%", 103, 12, 2, STRATA_YELLOW); label(f, "BOS", 106, 43, 2, STRATA_CYAN);
+    label(f, "RUN", 106, 66, 2, STRATA_WHITE);
+    label(f, "42%", 40, 104, 8, STRATA_WHITE);
+    rect(f, 16, 153, 144, 6, STRATA_WHITE); rect(f, 16, 153, 91, 6, STRATA_GREEN);
+    label(f, "BATTERY", 16, 161, 1, STRATA_CYAN);
+}
+
 unsigned int strata_scene_count(void) { return (unsigned int)(sizeof(scenes) / sizeof(scenes[0])); }
 const char *strata_scene_name(unsigned int scene) { return scenes[scene % strata_scene_count()].name; }
 const char *strata_scene_description(unsigned int scene) { return scenes[scene % strata_scene_count()].description; }
@@ -126,7 +163,8 @@ void strata_render(uint8_t *frame, unsigned int scene, uint32_t elapsed_ms)
     switch (scene % strata_scene_count()) {
     case 0: world(frame); break; case 1: activity(frame); break;
     case 2: weather(frame); break; case 3: navigation(frame); break;
-    case 4: notification(frame); break; default: timer(frame, elapsed_ms); break;
+    case 4: notification(frame); break; case 5: timer(frame, elapsed_ms); break;
+    case 6: segment_face(frame); break; default: segment_dashboard(frame); break;
     }
 }
 
