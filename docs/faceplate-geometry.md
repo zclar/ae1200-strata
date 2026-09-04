@@ -14,6 +14,13 @@ the sculpted upper-left boundary of the main opening. There are four openings:
 - upper-right map: 10.68 × 5.96 mm, rounded corners;
 - lower main opening: 23.28 × 9.80 mm bounding box, sculpted upper-left edge.
 
+The native emulator also renders the cover's minute track, minute numerals,
+four screw heads, and the printed `5 ALARMS`, `CASIO`, `ADJUST`, `LIGHT`, `MODE`,
+`SEARCH`, `WR100M`, and `10 YEAR BATTERY` legends. Their visual placement follows
+[Casio's official AE-1200WH-1AV product photography](https://www.casio.com/intl/watches/casio/product.AE-1200WH-1AV/),
+but they are reference artwork rather than manufacturing dimensions. The four
+aperture contours remain the geometry used for pixel clipping.
+
 The JDI LPM013M126A active area is 23.0208 × 23.0208 mm (176 × 176 pixels,
 0.1308 mm pitch). Therefore the main cover opening is 0.2592 mm wider than
 the active area. That does not prove a fit problem—the panel has inactive

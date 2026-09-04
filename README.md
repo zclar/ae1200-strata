@@ -20,7 +20,9 @@ make install-app
 
 The app rebuilds the shared renderer automatically when its C source changes.
 Use `./bin/ae1200-strata --check` to verify the local runtime without opening a
-window. See [packaging/README.md](packaging/README.md) for removal and details.
+window. Its faceplate view includes the original-style printed legends, analog
+minute track, screws, and exact provisional aperture clipping. See
+[packaging/README.md](packaging/README.md) for removal and details.
 
 ## Browser UX prototype
 

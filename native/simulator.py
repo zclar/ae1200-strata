@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import ctypes
 import json
+import math
 import pathlib
 import tkinter as tk
 
@@ -15,14 +16,15 @@ COLORS = ((24, 29, 24), (61, 102, 142), (78, 140, 73), (101, 163, 157),
           (184, 59, 50), (140, 86, 125), (201, 184, 62), (169, 176, 162))
 FACEPLATE = (24, 28, 24)
 PITCH = GEOMETRY["display"]["pixel_pitch_mm"]
+COVER_MIN, COVER_MAX = GEOMETRY["cover"]["bounds_xz_mm"]
 # Center the community cover's measured aperture field over the JDI active area.
 X0 = 3.66381 - (23.28 - 23.0208) / 2
 Z0 = 17.41375 - (23.0208 - (38.10376 - 17.41375)) / 2
 SIZE, SCALE = 176, 3
-OUTER_W = round(30.6276 / PITCH * SCALE)
-OUTER_H = round(29.3500 / PITCH * SCALE)
-PANEL_OX = round(X0 / PITCH * SCALE)
-PANEL_OY = round((Z0 - 12.94375) / PITCH * SCALE)
+OUTER_W = round((COVER_MAX[0] - COVER_MIN[0]) / PITCH * SCALE)
+OUTER_H = round((COVER_MAX[1] - COVER_MIN[1]) / PITCH * SCALE)
+PANEL_OX = round((X0 - COVER_MIN[0]) / PITCH * SCALE)
+PANEL_OY = round((Z0 - COVER_MIN[1]) / PITCH * SCALE)
 Frame = ctypes.c_uint8 * (SIZE * SIZE)
 
 def inside(point, polygon):
@@ -40,6 +42,10 @@ for aperture in GEOMETRY["apertures"].values():
 
 def visible(x, y):
     return any(inside((x + .5, y + .5), polygon) for polygon in APERTURES)
+
+def faceplate_point(x, z):
+    return ((x - COVER_MIN[0]) / PITCH * SCALE,
+            (z - COVER_MIN[1]) / PITCH * SCALE)
 
 class Simulator:
     def __init__(self, root):
@@ -81,6 +87,52 @@ class Simulator:
             for polygon in APERTURES:
                 points = [(PANEL_OX + x * SCALE, PANEL_OY + y * SCALE) for x, y in polygon]
                 self.canvas.create_polygon(points, outline="#697369", fill="", width=1)
+            self.draw_faceplate_details()
+
+    def draw_faceplate_details(self):
+        details = GEOMETRY["decorations"]
+        colors = {"silver": "#d4dbd0", "red": "#b83d42"}
+
+        # The minute track is printed on the cover around the circular aperture.
+        ring = details["analog_ring"]
+        cx, cy = faceplate_point(*ring["center_xz_mm"])
+        for radius, color, width in ((ring["aperture_radius_mm"], "#747e73", 1),
+                                     (ring["outer_radius_mm"], "#3e463f", 2)):
+            radius_px = radius / PITCH * SCALE
+            self.canvas.create_oval(cx - radius_px, cy - radius_px,
+                                    cx + radius_px, cy + radius_px,
+                                    outline=color, width=width)
+        for tick in range(ring["tick_count"]):
+            angle = math.radians(tick * 6 - 90)
+            inner = ring["tick_inner_radius_mm"]
+            outer = ring["tick_outer_radius_mm"] + (0.22 if tick % 5 == 0 else 0)
+            x1, y1 = cx + math.cos(angle) * inner / PITCH * SCALE, cy + math.sin(angle) * inner / PITCH * SCALE
+            x2, y2 = cx + math.cos(angle) * outer / PITCH * SCALE, cy + math.sin(angle) * outer / PITCH * SCALE
+            self.canvas.create_line(x1, y1, x2, y2, fill="#d4dbd0", width=2 if tick % 5 == 0 else 1)
+        for tick in range(0, 60, 5):
+            angle = math.radians(tick * 6 - 90)
+            radius = ring["number_radius_mm"] / PITCH * SCALE
+            value = "60" if tick == 0 else f"{tick:02d}"
+            self.canvas.create_text(cx + math.cos(angle) * radius,
+                                    cy + math.sin(angle) * radius,
+                                    text=value, fill="#d4dbd0",
+                                    font=("DejaVu Sans", -10, "bold"))
+
+        for x, z in details["screws_xz_mm"]:
+            sx, sy = faceplate_point(x, z)
+            radius = 0.39 / PITCH * SCALE
+            self.canvas.create_oval(sx - radius, sy - radius, sx + radius, sy + radius,
+                                    fill="#111511", outline="#626b62", width=2)
+            self.canvas.create_line(sx - radius * .45, sy, sx + radius * .45, sy,
+                                    fill="#778077", width=1)
+
+        for item in details["labels"]:
+            x, y = faceplate_point(*item["center_xz_mm"])
+            pixel_height = max(8, round(item["size_mm"] / PITCH * SCALE))
+            self.canvas.create_text(x, y, text=item["text"],
+                                    fill=colors[item["color"]],
+                                    angle=item.get("angle_deg", 0),
+                                    font=("DejaVu Sans", -pixel_height, "bold"))
 
 if __name__ == "__main__":
     window = tk.Tk(); Simulator(window); window.mainloop()

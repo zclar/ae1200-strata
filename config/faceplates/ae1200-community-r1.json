@@ -15,6 +15,10 @@
     "active_area_mm": [23.0208, 23.0208],
     "pixel_pitch_mm": 0.1308
   },
+  "cover": {
+    "bounds_xz_mm": [[0.0, 12.94375], [30.6276, 42.29375]],
+    "finish": "matte_black"
+  },
   "apertures": {
     "analog": {
       "shape": "polygonal_circle_with_fillets",
@@ -37,5 +41,27 @@
     "status": "estimated_centering_only",
     "note": "The STL has no registration to the JDI active pixel origin. The simulator must apply translation/rotation from a physical panel and cover measurement before manufacturing.",
     "do_not_use_for_cad": true
+  },
+  "decorations": {
+    "labels": [
+      {"text": "5 ALARMS", "center_xz_mm": [8.72, 14.72], "size_mm": 0.78, "color": "silver"},
+      {"text": "CASIO", "center_xz_mm": [22.05, 14.72], "size_mm": 1.02, "color": "silver"},
+      {"text": "ADJUST", "center_xz_mm": [1.25, 22.72], "size_mm": 0.68, "angle_deg": 90, "color": "silver"},
+      {"text": "LIGHT", "center_xz_mm": [29.35, 22.72], "size_mm": 0.68, "angle_deg": -90, "color": "silver"},
+      {"text": "MODE", "center_xz_mm": [1.25, 34.18], "size_mm": 0.68, "angle_deg": 90, "color": "silver"},
+      {"text": "SEARCH", "center_xz_mm": [29.35, 34.18], "size_mm": 0.68, "angle_deg": -90, "color": "silver"},
+      {"text": "WR100M", "center_xz_mm": [8.72, 29.60], "size_mm": 0.79, "color": "silver"},
+      {"text": "10 YEAR BATTERY", "center_xz_mm": [15.30, 39.55], "size_mm": 0.75, "color": "red"}
+    ],
+    "analog_ring": {
+      "center_xz_mm": [8.71381, 22.69375],
+      "aperture_radius_mm": 4.5,
+      "outer_radius_mm": 6.15,
+      "tick_inner_radius_mm": 4.72,
+      "tick_outer_radius_mm": 5.15,
+      "number_radius_mm": 5.58,
+      "tick_count": 60
+    },
+    "screws_xz_mm": [[3.10, 17.20], [14.33, 17.20], [3.10, 28.18], [14.33, 28.18]]
   }
 }

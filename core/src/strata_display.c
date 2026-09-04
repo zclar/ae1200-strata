@@ -7,25 +7,54 @@ static const struct scene_info scenes[] = {
     {"Classic AE1200", "A monochrome Royale-style face fitted to the cover."},
 };
 
-/* 3x5 glyphs, encoded left-to-right in each group of three bits. */
-static uint16_t glyph(char c)
+/* Readable 5x7 glyphs for the panel's small LCD-style legends. */
+static uint8_t glyph_row(char c, int row)
 {
-    static const uint16_t digits[] = {
-        0x7B6F, 0x2492, 0x73E7, 0x73CF, 0x5BC9,
-        0x79CF, 0x79EF, 0x7249, 0x7BEF, 0x7BCF,
+    static const uint8_t digits[10][7] = {
+        {0x0e, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0e},
+        {0x04, 0x0c, 0x04, 0x04, 0x04, 0x04, 0x0e},
+        {0x0e, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1f},
+        {0x1e, 0x01, 0x01, 0x0e, 0x01, 0x01, 0x1e},
+        {0x02, 0x06, 0x0a, 0x12, 0x1f, 0x02, 0x02},
+        {0x1f, 0x10, 0x10, 0x1e, 0x01, 0x01, 0x1e},
+        {0x0e, 0x10, 0x10, 0x1e, 0x11, 0x11, 0x0e},
+        {0x1f, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08},
+        {0x0e, 0x11, 0x11, 0x0e, 0x11, 0x11, 0x0e},
+        {0x0e, 0x11, 0x11, 0x0f, 0x01, 0x01, 0x0e},
     };
-    static const uint16_t letters[] = {
-        0x7BED, 0x6BAE, 0x7927, 0x6B6E, 0x79E7, 0x79E4, 0x79AF,
-        0x5BED, 0x7497, 0x124F, 0x5AAD, 0x4927, 0x5FED, 0x5F6D,
-        0x7B6F, 0x7BE4, 0x7B7B, 0x7BAC, 0x79CF, 0x7492, 0x5B6F,
-        0x5B6A, 0x5FFD, 0x5AAD, 0x5A92, 0x72A7,
+    static const uint8_t letters[26][7] = {
+        {0x0e, 0x11, 0x11, 0x1f, 0x11, 0x11, 0x11},
+        {0x1e, 0x11, 0x11, 0x1e, 0x11, 0x11, 0x1e},
+        {0x0e, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0e},
+        {0x1e, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1e},
+        {0x1f, 0x10, 0x10, 0x1e, 0x10, 0x10, 0x1f},
+        {0x1f, 0x10, 0x10, 0x1e, 0x10, 0x10, 0x10},
+        {0x0e, 0x11, 0x10, 0x17, 0x11, 0x11, 0x0f},
+        {0x11, 0x11, 0x11, 0x1f, 0x11, 0x11, 0x11},
+        {0x0e, 0x04, 0x04, 0x04, 0x04, 0x04, 0x0e},
+        {0x07, 0x02, 0x02, 0x02, 0x12, 0x12, 0x0c},
+        {0x11, 0x12, 0x14, 0x18, 0x14, 0x12, 0x11},
+        {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1f},
+        {0x11, 0x1b, 0x15, 0x15, 0x11, 0x11, 0x11},
+        {0x11, 0x19, 0x19, 0x15, 0x13, 0x13, 0x11},
+        {0x0e, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0e},
+        {0x1e, 0x11, 0x11, 0x1e, 0x10, 0x10, 0x10},
+        {0x0e, 0x11, 0x11, 0x11, 0x15, 0x12, 0x0d},
+        {0x1e, 0x11, 0x11, 0x1e, 0x14, 0x12, 0x11},
+        {0x0f, 0x10, 0x10, 0x0e, 0x01, 0x01, 0x1e},
+        {0x1f, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04},
+        {0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0e},
+        {0x11, 0x11, 0x11, 0x11, 0x11, 0x0a, 0x04},
+        {0x11, 0x11, 0x11, 0x15, 0x15, 0x1b, 0x11},
+        {0x11, 0x11, 0x0a, 0x04, 0x0a, 0x11, 0x11},
+        {0x11, 0x11, 0x0a, 0x04, 0x04, 0x04, 0x04},
+        {0x1f, 0x01, 0x02, 0x04, 0x08, 0x10, 0x1f},
     };
-    if (c >= '0' && c <= '9') return digits[c - '0'];
-    if (c >= 'A' && c <= 'Z') return letters[c - 'A'];
-    if (c == ':') return 0x0410;
-    if (c == '.') return 0x0002;
-    if (c == '-') return 0x01C0;
-    if (c == '%') return 0x5295;
+    if (c >= '0' && c <= '9') return digits[c - '0'][row];
+    if (c >= 'A' && c <= 'Z') return letters[c - 'A'][row];
+    if (c == ':' && (row == 2 || row == 5)) return 0x04;
+    if (c == '.' && row == 6) return 0x04;
+    if (c == '-' && row == 3) return 0x0e;
     return 0;
 }
 
@@ -45,35 +74,70 @@ static void rect(uint8_t *f, int x, int y, int w, int h, uint8_t color)
 static void label(uint8_t *f, const char *s, int x, int y, int scale, uint8_t color)
 {
     while (*s) {
-        uint16_t bits = glyph(*s++);
-        for (int row = 0; row < 5; ++row)
-            for (int col = 0; col < 3; ++col)
-                if (bits & (1u << (14 - row * 3 - col)))
+        char c = *s++;
+        for (int row = 0; row < 7; ++row)
+            for (int col = 0; col < 5; ++col)
+                if (glyph_row(c, row) & (1u << (4 - col)))
                     rect(f, x + col * scale, y + row * scale, scale, scale, color);
-        x += 4 * scale;
+        x += 6 * scale;
     }
 }
 
-static void seven_digit(uint8_t *f, unsigned int digit, int x, int y, uint8_t color)
+static void line(uint8_t *f, int x0, int y0, int x1, int y1, uint8_t color)
+{
+    int dx = x1 > x0 ? x1 - x0 : x0 - x1;
+    int sx = x0 < x1 ? 1 : -1;
+    int dy = y1 > y0 ? y0 - y1 : y1 - y0;
+    int sy = y0 < y1 ? 1 : -1;
+    int error = dx + dy;
+    for (;;) {
+        rect(f, x0, y0, 1, 1, color);
+        if (x0 == x1 && y0 == y1) break;
+        int twice = error * 2;
+        if (twice >= dy) { error += dy; x0 += sx; }
+        if (twice <= dx) { error += dx; y0 += sy; }
+    }
+}
+
+static void horizontal_segment(uint8_t *f, int x, int y, int width,
+                               int thickness, uint8_t color)
+{
+    for (int row = 0; row < thickness; ++row) {
+        int inset = row == thickness / 2 ? 0 : 1;
+        rect(f, x + inset, y + row, width - inset * 2, 1, color);
+    }
+}
+
+static void vertical_segment(uint8_t *f, int x, int y, int height,
+                             int thickness, uint8_t color)
+{
+    for (int column = 0; column < thickness; ++column) {
+        int inset = column == thickness / 2 ? 0 : 1;
+        rect(f, x + column, y + inset, 1, height - inset * 2, color);
+    }
+}
+
+static void seven_digit(uint8_t *f, unsigned int digit, int x, int y,
+                        int small, uint8_t color)
 {
     static const uint8_t segments[] = {
         0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f,
     };
     uint8_t on = segments[digit % 10u];
-    if (on & 0x01) rect(f, x + 3, y, 14, 3, color);
-    if (on & 0x02) rect(f, x + 17, y + 3, 3, 13, color);
-    if (on & 0x04) rect(f, x + 17, y + 18, 3, 13, color);
-    if (on & 0x08) rect(f, x + 3, y + 31, 14, 3, color);
-    if (on & 0x10) rect(f, x, y + 18, 3, 13, color);
-    if (on & 0x20) rect(f, x, y + 3, 3, 13, color);
-    if (on & 0x40) rect(f, x + 3, y + 15, 14, 3, color);
-}
-
-static void classic_time(uint8_t *f, int x, int y, uint8_t color)
-{
-    seven_digit(f, 1, x, y, color); seven_digit(f, 0, x + 24, y, color);
-    rect(f, x + 47, y + 10, 3, 3, color); rect(f, x + 47, y + 22, 3, 3, color);
-    seven_digit(f, 0, x + 55, y, color); seven_digit(f, 9, x + 79, y, color);
+    int thickness = small ? 2 : 3;
+    int width = small ? 9 : 19;
+    int vertical_height = small ? 10 : 18;
+    int right = small ? 9 : 18;
+    int middle = small ? 9 : 18;
+    int lower = small ? 10 : 20;
+    int bottom = small ? 19 : 38;
+    if (on & 0x01) horizontal_segment(f, x + 1, y, width, thickness, color);
+    if (on & 0x02) vertical_segment(f, x + right, y + 1, vertical_height, thickness, color);
+    if (on & 0x04) vertical_segment(f, x + right, y + lower, vertical_height, thickness, color);
+    if (on & 0x08) horizontal_segment(f, x + 1, y + bottom, width, thickness, color);
+    if (on & 0x10) vertical_segment(f, x, y + lower, vertical_height, thickness, color);
+    if (on & 0x20) vertical_segment(f, x, y + 1, vertical_height, thickness, color);
+    if (on & 0x40) horizontal_segment(f, x + 1, y + middle, width, thickness, color);
 }
 
 static void disc(uint8_t *f, int cx, int cy, int radius, uint8_t color)
@@ -93,25 +157,82 @@ static void bluetooth(uint8_t *f, int x, int y, uint8_t color)
     rect(f, x, y + 9, 2, 2, color); rect(f, x + 1, y + 7, 3, 2, color);
 }
 
+static void analog_clock(uint8_t *f)
+{
+    const int cx = 40, cy = 49, radius = 32;
+    disc(f, cx, cy, radius, STRATA_WHITE);
+    for (int y = -radius; y <= radius; ++y) {
+        for (int x = -radius; x <= radius; ++x) {
+            int distance = x * x + y * y;
+            if (distance <= radius * radius && distance >= (radius - 2) * (radius - 2))
+                rect(f, cx + x, cy + y, 1, 1, STRATA_BLACK);
+        }
+    }
+    line(f, cx, cy - 29, cx, cy - 7, STRATA_BLACK);
+    line(f, cx + 29, cy, cx + 7, cy, STRATA_BLACK);
+    line(f, cx, cy + 29, cx, cy + 7, STRATA_BLACK);
+    line(f, cx - 29, cy, cx - 7, cy, STRATA_BLACK);
+    line(f, cx, cy, cx - 17, cy - 10, STRATA_BLACK);
+    line(f, cx, cy, cx + 17, cy - 21, STRATA_BLACK);
+    disc(f, cx, cy, 4, STRATA_BLACK);
+}
+
+static void world_map(uint8_t *f)
+{
+    static const char *const rows[] = {
+        "      #####         #######",
+        "    ########      ############",
+        "   ##########   ################",
+        "  ##########   #################",
+        "  #########   ##################",
+        "    ######     ###############",
+        "     #####       ###########",
+        "     ####          #######",
+        "      ###           #####",
+        "      ####           ####",
+        "       ###           ####",
+        "       ###           ###",
+        "        ###          ###",
+        "         ##          ##",
+        "         ##              ####",
+        "                         #####",
+        "                          ###",
+    };
+    for (int y = 42; y <= 78; y += 12)
+        for (int x = 101; x <= 172; x += 3) rect(f, x, y, 1, 1, STRATA_BLACK);
+    for (int x = 113; x <= 161; x += 24)
+        for (int y = 40; y <= 80; y += 3) rect(f, x, y, 1, 1, STRATA_BLACK);
+    for (size_t row = 0; row < sizeof(rows) / sizeof(rows[0]); ++row)
+        for (size_t column = 0; rows[row][column]; ++column)
+            if (rows[row][column] == '#')
+                rect(f, 101 + (int)column * 2, 41 + (int)row * 2, 2, 2, STRATA_BLACK);
+}
+
+static void main_time(uint8_t *f)
+{
+    label(f, "SUN", 100, 99, 1, STRATA_BLACK);
+    label(f, "6-30", 139, 99, 1, STRATA_BLACK);
+    label(f, "PM", 8, 134, 1, STRATA_BLACK);
+
+    seven_digit(f, 1, 32, 122, 0, STRATA_BLACK);
+    seven_digit(f, 0, 54, 122, 0, STRATA_BLACK);
+    disc(f, 79, 135, 2, STRATA_BLACK);
+    disc(f, 79, 150, 2, STRATA_BLACK);
+    seven_digit(f, 0, 85, 122, 0, STRATA_BLACK);
+    seven_digit(f, 8, 107, 122, 0, STRATA_BLACK);
+    seven_digit(f, 3, 137, 140, 1, STRATA_BLACK);
+    seven_digit(f, 6, 150, 140, 1, STRATA_BLACK);
+}
+
 static void segment_face(uint8_t *f)
 {
-    /* Classic AE-1200-inspired face, fitted to the measured openings. */
-    disc(f, 40, 49, 27, STRATA_BLACK); disc(f, 40, 49, 24, STRATA_WHITE);
-    rect(f, 39, 23, 2, 7, STRATA_BLACK); rect(f, 39, 68, 2, 7, STRATA_BLACK);
-    rect(f, 14, 48, 7, 2, STRATA_BLACK); rect(f, 59, 48, 7, 2, STRATA_BLACK);
-    label(f, "12", 35, 25, 1, STRATA_BLACK); label(f, "6", 38, 69, 1, STRATA_BLACK);
-    rect(f, 40, 31, 2, 19, STRATA_BLACK); rect(f, 40, 48, 17, 2, STRATA_BLACK);
-    disc(f, 40, 49, 3, STRATA_BLACK);
-
-    label(f, "WR", 111, 14, 1, STRATA_BLACK);
-    rect(f, 105, 44, 7, 8, STRATA_BLACK); rect(f, 113, 41, 10, 11, STRATA_BLACK);
-    rect(f, 125, 47, 11, 7, STRATA_BLACK); rect(f, 138, 43, 9, 13, STRATA_BLACK);
-    rect(f, 149, 51, 16, 7, STRATA_BLACK); rect(f, 117, 59, 8, 10, STRATA_BLACK);
-    label(f, "CITY", 112, 72, 1, STRATA_BLACK);
-
-    classic_time(f, 37, 120, STRATA_BLACK);
-    label(f, "MON 18", 66, 158, 1, STRATA_BLACK);
-    bluetooth(f, 158, 99, STRATA_BLACK);
+    /* Original AE-1200 timekeeping layout, fitted to the four cover openings. */
+    analog_clock(f);
+    label(f, "MUTE", 118, 10, 1, STRATA_BLACK);
+    label(f, "ALM SIG", 115, 20, 1, STRATA_BLACK);
+    bluetooth(f, 163, 11, STRATA_BLACK);
+    world_map(f);
+    main_time(f);
 }
 
 unsigned int strata_scene_count(void) { return (unsigned int)(sizeof(scenes) / sizeof(scenes[0])); }

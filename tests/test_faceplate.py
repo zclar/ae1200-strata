@@ -7,6 +7,10 @@ geometry = json.loads((root / "config/faceplates/ae1200-community-r1.json").read
 assert geometry["display"]["pixels"] == [176, 176]
 assert geometry["display"]["pixel_pitch_mm"] == 0.1308
 assert set(geometry["apertures"]) == {"analog", "status", "map", "main"}
+assert geometry["cover"]["bounds_xz_mm"] == [[0.0, 12.94375], [30.6276, 42.29375]]
+assert len(geometry["decorations"]["labels"]) == 8
+assert geometry["decorations"]["analog_ring"]["tick_count"] == 60
+assert len(geometry["decorations"]["screws_xz_mm"]) == 4
 
 def bounds(points):
     xs, ys = zip(*points)
