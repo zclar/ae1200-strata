@@ -23,7 +23,8 @@ Use `./bin/ae1200-strata --check` to verify the local runtime without opening a
 window. Its faceplate view includes the original-style printed legends, analog
 minute track, screws, and exact provisional aperture clipping. The upper status
 opening currently reels between the classic indicators and an animated battery
-level every four seconds. See
+level every four seconds. The main opening alternates between the classic clock
+and a notification card with a scrolling message. See
 [packaging/README.md](packaging/README.md) for removal and details.
 
 ## Browser UX prototype

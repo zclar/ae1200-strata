@@ -5,7 +5,7 @@
 struct scene_info { const char *name; const char *description; };
 struct point { int x; int y; };
 static const struct scene_info scenes[] = {
-    {"Classic AE1200", "An animated Royale-style face with an upper status demo reel."},
+    {"Classic AE1200", "An animated Royale-style face with independent segment reels."},
 };
 
 /* Readable 5x7 glyphs for the panel's small LCD-style legends. */
@@ -346,6 +346,48 @@ static void main_time(uint8_t *f, uint32_t total_seconds, uint32_t elapsed_ms)
     seven_digit(f, second % 10u, 148, 140, 1, STRATA_BLACK);
 }
 
+static void message_icon(uint8_t *f, int x, int y, uint8_t color)
+{
+    line(f, x + 2, y, x + 19, y, color);
+    line(f, x + 21, y + 2, x + 21, y + 12, color);
+    line(f, x + 19, y + 14, x + 2, y + 14, color);
+    line(f, x, y + 12, x, y + 2, color);
+    rect(f, x + 1, y + 1, 1, 1, color);
+    rect(f, x + 20, y + 1, 1, 1, color);
+    rect(f, x + 1, y + 13, 1, 1, color);
+    rect(f, x + 20, y + 13, 1, 1, color);
+    line(f, x + 2, y + 2, x + 10, y + 9, color);
+    line(f, x + 19, y + 2, x + 11, y + 9, color);
+}
+
+static void main_notification(uint8_t *f, uint32_t item_elapsed_ms)
+{
+    static const char message[] = "ALEX: PROTOTYPE READY TO TEST";
+    const int message_width = (int)(sizeof(message) - 1u) * 12;
+    const int travel = 170 + message_width;
+    int scroll_x = 170 - (int)(item_elapsed_ms * (uint32_t)travel / 11999u);
+
+    label(f, "NOTIFICATION", 96, 99, 1, STRATA_BLACK);
+    line(f, 82, 115, 168, 115, STRATA_BLACK);
+    message_icon(f, 8, 122, STRATA_BLUE);
+    label(f, "MESSAGES", 36, 126, 1, STRATA_BLACK);
+    label(f, "1 NEW", 111, 126, 1, STRATA_BLUE);
+    line(f, 8, 141, 168, 141, STRATA_BLACK);
+    label(f, message, scroll_x, 146, 2, STRATA_BLACK);
+}
+
+static void main_reel(uint8_t *f, uint32_t total_seconds, uint32_t elapsed_ms)
+{
+    const uint32_t time_duration_ms = 8000u;
+    const uint32_t notification_duration_ms = 12000u;
+    const uint32_t cycle_ms = time_duration_ms + notification_duration_ms;
+    uint32_t cycle_elapsed_ms = elapsed_ms % cycle_ms;
+    if (cycle_elapsed_ms < time_duration_ms)
+        main_time(f, total_seconds, elapsed_ms);
+    else
+        main_notification(f, cycle_elapsed_ms - time_duration_ms);
+}
+
 static void segment_face(uint8_t *f, uint32_t elapsed_ms)
 {
     uint32_t total_seconds = 10u * 3600u + 8u * 60u + 36u + elapsed_ms / 1000u;
@@ -353,7 +395,7 @@ static void segment_face(uint8_t *f, uint32_t elapsed_ms)
     analog_clock(f, total_seconds);
     status_reel(f, elapsed_ms);
     world_map(f);
-    main_time(f, total_seconds, elapsed_ms);
+    main_reel(f, total_seconds, elapsed_ms);
 }
 
 unsigned int strata_scene_count(void) { return (unsigned int)(sizeof(scenes) / sizeof(scenes[0])); }

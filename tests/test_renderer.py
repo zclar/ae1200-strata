@@ -36,6 +36,12 @@ lib.strata_render(battery, 0, 6000)
 assert 2 in battery, "battery reel item is missing its RGB111 green level fill"
 assert bytes(battery) != bytes(animated), "upper status reel did not advance"
 
+notification = frame_type()
+lib.strata_render(notification, 0, 10000)
+assert notification[122 * 176 + 10] == 1, "message reel is missing its blue envelope"
+assert notification[99 * 176 + 96] == 0, "message reel is missing its notification header"
+assert bytes(notification) != bytes(battery), "main display reel did not advance"
+
 # Hardware stream packs two RGB111 pixels into RGB0/RGB0 nibbles.
 pattern, packed = frame_type(), packed_type()
 for x in range(176):
