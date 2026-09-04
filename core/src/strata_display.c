@@ -5,7 +5,7 @@
 struct scene_info { const char *name; const char *description; };
 struct point { int x; int y; };
 static const struct scene_info scenes[] = {
-    {"Classic AE1200", "A Royale-style face with its original layout and a blue wireless accent."},
+    {"Classic AE1200", "An animated Royale-style face with an upper status demo reel."},
 };
 
 /* Readable 5x7 glyphs for the panel's small LCD-style legends. */
@@ -56,6 +56,10 @@ static uint8_t glyph_row(char c, int row)
     if (c == ':' && (row == 2 || row == 5)) return 0x04;
     if (c == '.' && row == 6) return 0x04;
     if (c == '-' && row == 3) return 0x0e;
+    if (c == '%') {
+        static const uint8_t percent[7] = {0x19, 0x1a, 0x04, 0x08, 0x0b, 0x13, 0x00};
+        return percent[row];
+    }
     return 0;
 }
 
@@ -183,6 +187,48 @@ static void bluetooth(uint8_t *f, int x, int y, uint8_t color)
     rect(f, x, y + 9, 2, 2, color); rect(f, x + 1, y + 7, 3, 2, color);
 }
 
+static void classic_status(uint8_t *f)
+{
+    label(f, "MUTE", 116, 10, 1, STRATA_BLACK);
+    label(f, "ALM SIG", 113, 20, 1, STRATA_BLACK);
+    bluetooth(f, 161, 11, STRATA_BLUE);
+}
+
+static void battery_status(uint8_t *f, uint32_t reel_elapsed_ms)
+{
+    const int x = 99, y = 11, width = 68, height = 16;
+    unsigned int level = 25u + (reel_elapsed_ms * 70u) / 3999u;
+    int fill_width = (int)(level * (unsigned int)(width - 6) / 100u);
+    char percentage[] = {'0', '0', '%', '\0'};
+
+    /* Beveled body and terminal preserve the recognizable battery silhouette. */
+    line(f, x + 2, y, x + width - 3, y, STRATA_BLACK);
+    line(f, x + width - 1, y + 2, x + width - 1, y + height - 3, STRATA_BLACK);
+    line(f, x + width - 3, y + height - 1, x + 2, y + height - 1, STRATA_BLACK);
+    line(f, x, y + height - 3, x, y + 2, STRATA_BLACK);
+    rect(f, x + 1, y + 1, 1, 1, STRATA_BLACK);
+    rect(f, x + width - 2, y + 1, 1, 1, STRATA_BLACK);
+    rect(f, x + 1, y + height - 2, 1, 1, STRATA_BLACK);
+    rect(f, x + width - 2, y + height - 2, 1, 1, STRATA_BLACK);
+    rect(f, x + width, y + 5, 4, height - 10, STRATA_BLACK);
+    rect(f, x + 3, y + 3, fill_width, height - 6, STRATA_GREEN);
+
+    percentage[0] = (char)('0' + level / 10u);
+    percentage[1] = (char)('0' + level % 10u);
+    label(f, percentage, 124, 15, 1, STRATA_BLACK);
+}
+
+static void status_reel(uint8_t *f, uint32_t elapsed_ms)
+{
+    const uint32_t item_duration_ms = 4000u;
+    uint32_t item = (elapsed_ms / item_duration_ms) % 2u;
+    uint32_t item_elapsed_ms = elapsed_ms % item_duration_ms;
+    if (item == 0u)
+        classic_status(f);
+    else
+        battery_status(f, item_elapsed_ms);
+}
+
 static void analog_clock(uint8_t *f, uint32_t total_seconds)
 {
     static const int8_t clock_x[60] = {
@@ -305,9 +351,7 @@ static void segment_face(uint8_t *f, uint32_t elapsed_ms)
     uint32_t total_seconds = 10u * 3600u + 8u * 60u + 36u + elapsed_ms / 1000u;
     /* Original AE-1200 timekeeping layout, fitted to the four cover openings. */
     analog_clock(f, total_seconds);
-    label(f, "MUTE", 116, 10, 1, STRATA_BLACK);
-    label(f, "ALM SIG", 113, 20, 1, STRATA_BLACK);
-    bluetooth(f, 161, 11, STRATA_BLUE);
+    status_reel(f, elapsed_ms);
     world_map(f);
     main_time(f, total_seconds, elapsed_ms);
 }

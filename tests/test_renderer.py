@@ -31,6 +31,11 @@ animated = frame_type()
 lib.strata_render(animated, 0, 2234)
 assert bytes(animated) != bytes(first), "classic scene did not advance with elapsed time"
 
+battery = frame_type()
+lib.strata_render(battery, 0, 6000)
+assert 2 in battery, "battery reel item is missing its RGB111 green level fill"
+assert bytes(battery) != bytes(animated), "upper status reel did not advance"
+
 # Hardware stream packs two RGB111 pixels into RGB0/RGB0 nibbles.
 pattern, packed = frame_type(), packed_type()
 for x in range(176):
