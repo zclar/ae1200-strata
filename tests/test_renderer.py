@@ -22,6 +22,7 @@ for scene in range(lib.strata_scene_count()):
     assert bytes(first) == bytes(second), f"scene {scene} is not deterministic"
     assert max(first) <= 7, f"scene {scene} emitted a non-RGB111 color"
     assert len(set(first)) > 1, f"scene {scene} is blank"
+    assert 1 in first, f"scene {scene} is missing its blue Bluetooth/time-zone accents"
     hashes.add(hashlib.sha256(bytes(first)).hexdigest())
 
 assert len(hashes) == lib.strata_scene_count(), "scene outputs are not unique"

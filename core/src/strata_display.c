@@ -3,8 +3,9 @@
 #include <stddef.h>
 
 struct scene_info { const char *name; const char *description; };
+struct point { int x; int y; };
 static const struct scene_info scenes[] = {
-    {"Classic AE1200", "A monochrome Royale-style face fitted to the cover."},
+    {"Classic AE1200", "A Royale-style face with its original layout and a blue wireless accent."},
 };
 
 /* Readable 5x7 glyphs for the panel's small LCD-style legends. */
@@ -148,6 +149,31 @@ static void disc(uint8_t *f, int cx, int cy, int radius, uint8_t color)
                 rect(f, cx + x, cy + y, 1, 1, color);
 }
 
+static void polygon(uint8_t *f, int origin_x, int origin_y,
+                    const struct point *points, size_t count, uint8_t color)
+{
+    int min_x = points[0].x, max_x = points[0].x;
+    int min_y = points[0].y, max_y = points[0].y;
+    for (size_t i = 1; i < count; ++i) {
+        if (points[i].x < min_x) min_x = points[i].x;
+        if (points[i].x > max_x) max_x = points[i].x;
+        if (points[i].y < min_y) min_y = points[i].y;
+        if (points[i].y > max_y) max_y = points[i].y;
+    }
+    for (int y = min_y; y <= max_y; ++y) {
+        for (int x = min_x; x <= max_x; ++x) {
+            int inside = 0;
+            for (size_t i = 0, previous = count - 1; i < count; previous = i++) {
+                const struct point a = points[i], b = points[previous];
+                if ((a.y > y) != (b.y > y) &&
+                    x < a.x + (y - a.y) * (b.x - a.x) / (b.y - a.y))
+                    inside = !inside;
+            }
+            if (inside) rect(f, origin_x + x, origin_y + y, 1, 1, color);
+        }
+    }
+}
+
 static void bluetooth(uint8_t *f, int x, int y, uint8_t color)
 {
     rect(f, x + 3, y, 2, 14, color); rect(f, x + 5, y + 2, 3, 2, color);
@@ -179,39 +205,60 @@ static void analog_clock(uint8_t *f)
 
 static void world_map(uint8_t *f)
 {
-    static const char *const rows[] = {
-        "      #####         #######",
-        "    ########      ############",
-        "   ##########   ################",
-        "  ##########   #################",
-        "  #########   ##################",
-        "    ######     ###############",
-        "     #####       ###########",
-        "     ####          #######",
-        "      ###           #####",
-        "      ####           ####",
-        "       ###           ####",
-        "       ###           ###",
-        "        ###          ###",
-        "         ##          ##",
-        "         ##              ####",
-        "                         #####",
-        "                          ###",
+    static const struct point north_america[] = {
+        {1, 8}, {5, 4}, {10, 2}, {17, 3}, {20, 5}, {26, 5}, {29, 9},
+        {26, 12}, {22, 12}, {20, 16}, {16, 15}, {13, 18}, {10, 15},
+        {7, 14}, {4, 12}, {2, 12},
     };
-    for (int y = 42; y <= 78; y += 12)
+    static const struct point south_america[] = {
+        {16, 17}, {21, 17}, {26, 21}, {26, 24}, {23, 28}, {22, 33},
+        {19, 37}, {17, 31}, {14, 27}, {14, 22},
+    };
+    static const struct point greenland[] = {
+        {21, 1}, {26, 0}, {30, 3}, {28, 7}, {24, 7},
+    };
+    static const struct point eurasia[] = {
+        {33, 8}, {37, 4}, {42, 3}, {47, 1}, {53, 3}, {58, 2}, {63, 4},
+        {70, 6}, {68, 10}, {63, 10}, {60, 13}, {55, 12}, {51, 16},
+        {46, 14}, {43, 11}, {38, 12},
+    };
+    static const struct point africa[] = {
+        {39, 15}, {45, 13}, {51, 17}, {51, 21}, {48, 25}, {47, 31},
+        {44, 33}, {42, 28}, {39, 24}, {37, 19},
+    };
+    static const struct point australia[] = {
+        {58, 27}, {63, 25}, {69, 27}, {71, 31}, {67, 34}, {61, 34}, {57, 31},
+    };
+
+    /* The stock map has dotted latitude/longitude guides and a solid equator. */
+    for (int y = 48; y <= 72; y += 24)
         for (int x = 99; x <= 170; x += 3) rect(f, x, y, 1, 1, STRATA_BLACK);
     for (int x = 111; x <= 159; x += 24)
         for (int y = 40; y <= 80; y += 3) rect(f, x, y, 1, 1, STRATA_BLACK);
-    for (size_t row = 0; row < sizeof(rows) / sizeof(rows[0]); ++row)
-        for (size_t column = 0; rows[row][column]; ++column)
-            if (rows[row][column] == '#')
-                rect(f, 99 + (int)column * 2, 41 + (int)row * 2, 2, 2, STRATA_BLACK);
+    polygon(f, 99, 41, north_america, sizeof(north_america) / sizeof(north_america[0]), STRATA_BLACK);
+    polygon(f, 99, 41, south_america, sizeof(south_america) / sizeof(south_america[0]), STRATA_BLACK);
+    polygon(f, 99, 41, greenland, sizeof(greenland) / sizeof(greenland[0]), STRATA_BLACK);
+    polygon(f, 99, 41, eurasia, sizeof(eurasia) / sizeof(eurasia[0]), STRATA_BLACK);
+    polygon(f, 99, 41, africa, sizeof(africa) / sizeof(africa[0]), STRATA_BLACK);
+    polygon(f, 99, 41, australia, sizeof(australia) / sizeof(australia[0]), STRATA_BLACK);
+    rect(f, 132, 48, 2, 2, STRATA_BLACK); /* United Kingdom */
+    rect(f, 153, 55, 2, 3, STRATA_BLACK); /* Japan */
+    rect(f, 152, 72, 1, 3, STRATA_BLACK); /* Madagascar */
+    rect(f, 155, 66, 2, 2, STRATA_BLACK); /* Indonesia */
+    line(f, 99, 60, 170, 60, STRATA_BLACK);
+
+    /* New York / UTC-5: the stock display marks the selected zone with a dark band. */
+    rect(f, 119, 40, 3, 40, STRATA_BLACK);
+    disc(f, 120, 52, 2, STRATA_BLACK);
 }
 
 static void main_time(uint8_t *f)
 {
-    label(f, "SUN", 98, 99, 1, STRATA_BLACK);
-    label(f, "6-30", 137, 99, 1, STRATA_BLACK);
+    label(f, "SUN", 103, 100, 1, STRATA_BLACK);
+    label(f, "6-30", 135, 100, 1, STRATA_BLACK);
+    line(f, 130, 96, 130, 113, STRATA_BLACK);
+    line(f, 82, 115, 168, 115, STRATA_BLACK);
+    label(f, "DST", 139, 123, 1, STRATA_BLACK);
     label(f, "PM", 6, 134, 1, STRATA_BLACK);
 
     seven_digit(f, 1, 30, 122, 0, STRATA_BLACK);
@@ -230,7 +277,7 @@ static void segment_face(uint8_t *f)
     analog_clock(f);
     label(f, "MUTE", 116, 10, 1, STRATA_BLACK);
     label(f, "ALM SIG", 113, 20, 1, STRATA_BLACK);
-    bluetooth(f, 161, 11, STRATA_BLACK);
+    bluetooth(f, 161, 11, STRATA_BLUE);
     world_map(f);
     main_time(f);
 }
