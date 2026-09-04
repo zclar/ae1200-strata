@@ -4,9 +4,30 @@
 
 struct scene_info { const char *name; const char *description; };
 struct point { int x; int y; };
+typedef void (*reel_renderer)(uint8_t *frame, uint32_t local_ms,
+                              uint32_t elapsed_ms);
+struct reel_item { reel_renderer render; };
+
+#define ARRAY_SIZE(items) (sizeof(items) / sizeof((items)[0]))
+#define REEL_ITEM_DURATION_MS 4000u
+
 static const struct scene_info scenes[] = {
     {"Classic AE1200", "An animated Royale-style face with independent segment reels."},
 };
+
+/*
+ * A reel is the embedded compositor: each item receives the same four-second
+ * local timeline, while elapsed_ms remains available for continuous clocks.
+ * Static callback tables add no heap use and run identically in the emulator
+ * and on the MCU.
+ */
+static void render_reel(uint8_t *frame, uint32_t elapsed_ms,
+                        const struct reel_item *items, size_t count)
+{
+    uint32_t index = (elapsed_ms / REEL_ITEM_DURATION_MS) % (uint32_t)count;
+    uint32_t local_ms = elapsed_ms % REEL_ITEM_DURATION_MS;
+    items[index].render(frame, local_ms, elapsed_ms);
+}
 
 /* Readable 5x7 glyphs for the panel's small LCD-style legends. */
 static uint8_t glyph_row(char c, int row)
@@ -187,19 +208,23 @@ static void bluetooth(uint8_t *f, int x, int y, uint8_t color)
     rect(f, x, y + 9, 2, 2, color); rect(f, x + 1, y + 7, 3, 2, color);
 }
 
-static void classic_status(uint8_t *f)
+static void classic_status(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
 {
+    (void)local_ms;
+    (void)elapsed_ms;
     label(f, "MUTE", 116, 10, 1, STRATA_BLACK);
     label(f, "ALM SIG", 113, 20, 1, STRATA_BLACK);
     bluetooth(f, 161, 11, STRATA_BLUE);
 }
 
-static void battery_status(uint8_t *f, uint32_t reel_elapsed_ms)
+static void battery_status(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
 {
     const int x = 99, y = 11, width = 68, height = 16;
-    unsigned int level = 25u + (reel_elapsed_ms * 70u) / 3999u;
+    unsigned int level = 25u + (local_ms * 70u) / (REEL_ITEM_DURATION_MS - 1u);
     int fill_width = (int)(level * (unsigned int)(width - 6) / 100u);
     char percentage[] = {'0', '0', '%', '\0'};
+
+    (void)elapsed_ms;
 
     /* Beveled body and terminal preserve the recognizable battery silhouette. */
     line(f, x + 2, y, x + width - 3, y, STRATA_BLACK);
@@ -220,13 +245,11 @@ static void battery_status(uint8_t *f, uint32_t reel_elapsed_ms)
 
 static void status_reel(uint8_t *f, uint32_t elapsed_ms)
 {
-    const uint32_t item_duration_ms = 4000u;
-    uint32_t item = (elapsed_ms / item_duration_ms) % 2u;
-    uint32_t item_elapsed_ms = elapsed_ms % item_duration_ms;
-    if (item == 0u)
-        classic_status(f);
-    else
-        battery_status(f, item_elapsed_ms);
+    static const struct reel_item items[] = {
+        {classic_status},
+        {battery_status},
+    };
+    render_reel(f, elapsed_ms, items, ARRAY_SIZE(items));
 }
 
 static void analog_clock(uint8_t *f, uint32_t total_seconds)
@@ -346,6 +369,13 @@ static void main_time(uint8_t *f, uint32_t total_seconds, uint32_t elapsed_ms)
     seven_digit(f, second % 10u, 148, 140, 1, STRATA_BLACK);
 }
 
+static void main_time_item(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{
+    uint32_t total_seconds = 10u * 3600u + 8u * 60u + 36u + elapsed_ms / 1000u;
+    (void)local_ms;
+    main_time(f, total_seconds, elapsed_ms);
+}
+
 static void message_icon(uint8_t *f, int x, int y, uint8_t color)
 {
     line(f, x + 2, y, x + 19, y, color);
@@ -360,12 +390,21 @@ static void message_icon(uint8_t *f, int x, int y, uint8_t color)
     line(f, x + 19, y + 2, x + 11, y + 9, color);
 }
 
-static void main_notification(uint8_t *f, uint32_t item_elapsed_ms)
+static int marquee_x(uint32_t local_ms)
+{
+    const int viewport_x = 8;
+    const uint32_t pixels_per_second = 80u;
+
+    /* Begin readable immediately and move at a consistent, hardware-safe rate. */
+    return viewport_x - (int)(local_ms * pixels_per_second / 1000u);
+}
+
+static void main_notification(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
 {
     static const char message[] = "ALEX: PROTOTYPE READY TO TEST";
-    const int message_width = (int)(sizeof(message) - 1u) * 12;
-    const int travel = 170 + message_width;
-    int scroll_x = 170 - (int)(item_elapsed_ms * (uint32_t)travel / 11999u);
+    int scroll_x = marquee_x(local_ms);
+
+    (void)elapsed_ms;
 
     label(f, "NOTIFICATION", 96, 99, 1, STRATA_BLACK);
     line(f, 82, 115, 168, 115, STRATA_BLACK);
@@ -376,16 +415,42 @@ static void main_notification(uint8_t *f, uint32_t item_elapsed_ms)
     label(f, message, scroll_x, 146, 2, STRATA_BLACK);
 }
 
-static void main_reel(uint8_t *f, uint32_t total_seconds, uint32_t elapsed_ms)
+static void gmail_icon(uint8_t *f, int x, int y)
 {
-    const uint32_t time_duration_ms = 8000u;
-    const uint32_t notification_duration_ms = 12000u;
-    const uint32_t cycle_ms = time_duration_ms + notification_duration_ms;
-    uint32_t cycle_elapsed_ms = elapsed_ms % cycle_ms;
-    if (cycle_elapsed_ms < time_duration_ms)
-        main_time(f, total_seconds, elapsed_ms);
-    else
-        main_notification(f, cycle_elapsed_ms - time_duration_ms);
+    /* Thick red pillars and chevrons retain Gmail's recognizable M at 22x15. */
+    rect(f, x, y + 1, 3, 14, STRATA_RED);
+    rect(f, x + 19, y + 1, 3, 14, STRATA_RED);
+    line(f, x + 2, y + 1, x + 10, y + 8, STRATA_RED);
+    line(f, x + 2, y + 2, x + 10, y + 9, STRATA_RED);
+    line(f, x + 19, y + 1, x + 11, y + 8, STRATA_RED);
+    line(f, x + 19, y + 2, x + 11, y + 9, STRATA_RED);
+    rect(f, x + 9, y + 7, 4, 3, STRATA_RED);
+}
+
+static void main_gmail(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{
+    static const char message[] = "MAYA: DESIGN REVIEW AT 3 PM";
+    int scroll_x = marquee_x(local_ms);
+
+    (void)elapsed_ms;
+
+    label(f, "GMAIL", 136, 99, 1, STRATA_RED);
+    line(f, 82, 115, 168, 115, STRATA_BLACK);
+    gmail_icon(f, 8, 122);
+    label(f, "INBOX", 36, 126, 1, STRATA_BLACK);
+    label(f, "1 NEW", 111, 126, 1, STRATA_RED);
+    line(f, 8, 141, 168, 141, STRATA_BLACK);
+    label(f, message, scroll_x, 146, 2, STRATA_BLACK);
+}
+
+static void main_reel(uint8_t *f, uint32_t elapsed_ms)
+{
+    static const struct reel_item items[] = {
+        {main_time_item},
+        {main_notification},
+        {main_gmail},
+    };
+    render_reel(f, elapsed_ms, items, ARRAY_SIZE(items));
 }
 
 static void segment_face(uint8_t *f, uint32_t elapsed_ms)
@@ -395,7 +460,7 @@ static void segment_face(uint8_t *f, uint32_t elapsed_ms)
     analog_clock(f, total_seconds);
     status_reel(f, elapsed_ms);
     world_map(f);
-    main_reel(f, total_seconds, elapsed_ms);
+    main_reel(f, elapsed_ms);
 }
 
 unsigned int strata_scene_count(void) { return (unsigned int)(sizeof(scenes) / sizeof(scenes[0])); }

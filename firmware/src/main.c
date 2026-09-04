@@ -30,6 +30,6 @@ int main(void)
 			printk("LPM013M126A frame write failed: %d\n", result);
 			return result;
 		}
-		k_sleep(K_MSEC(500));
+		k_sleep(K_MSEC(20));
 	}
 }

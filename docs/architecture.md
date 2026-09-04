@@ -36,6 +36,28 @@ under controlled lighting. Simulator colors should therefore represent the
 eight logical RGB111 states, while an optional visual profile approximates the
 panel's appearance without changing framebuffer data.
 
+## Animation compositor
+
+Animation is organized as small, fixed-memory reels in the portable C renderer.
+Each reel is a static array of renderer callbacks; the compositor selects one
+callback and gives it a local timeline from 0 through 3999 ms. Every item lasts
+exactly four seconds. The top status and main display openings can therefore
+grow independently by adding a callback and one array entry.
+
+This is intentionally not containerized. A process or container boundary would
+not exist on the nRF52840/nRF54L15 and would break simulator-to-hardware parity.
+The callback compositor has no heap allocation, draws directly into the shared
+176 x 176 RGB111 framebuffer, and compiles unchanged for the native app and
+Zephyr. As the library grows, renderer callbacks can move into separate widget
+source files without changing the timing or backend interfaces.
+
+The native app requests 10 ms presentation steps for visibly smooth previews,
+but animation state always comes from an absolute monotonic clock. A slow host
+therefore skips an intermediate frame instead of stretching the four-second
+timeline. The physical panel remains transport-limited to its documented update
+rate, so hardware may display fewer intermediate frames while following the
+same elapsed time and arriving at the same four-second boundaries.
+
 ## Confirmed display constraints
 
 - JDI LPM013M126A

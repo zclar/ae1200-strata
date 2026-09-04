@@ -37,10 +37,33 @@ assert 2 in battery, "battery reel item is missing its RGB111 green level fill"
 assert bytes(battery) != bytes(animated), "upper status reel did not advance"
 
 notification = frame_type()
-lib.strata_render(notification, 0, 10000)
+lib.strata_render(notification, 0, 6000)
 assert notification[122 * 176 + 10] == 1, "message reel is missing its blue envelope"
 assert notification[99 * 176 + 96] == 0, "message reel is missing its notification header"
-assert bytes(notification) != bytes(battery), "main display reel did not advance"
+assert bytes(notification) != bytes(first), "main display reel did not advance"
+
+gmail = frame_type()
+lib.strata_render(gmail, 0, 10000)
+assert gmail[123 * 176 + 8] == 4, "Gmail reel is missing its red M pillar"
+assert gmail[99 * 176 + 137] == 4, "Gmail reel is missing its red header"
+assert bytes(gmail) != bytes(notification), "Gmail reel did not advance"
+
+# Every reel item owns exactly [0, 4000) ms of the shared timeline.
+before_messages, start_messages = frame_type(), frame_type()
+before_gmail, start_gmail = frame_type(), frame_type()
+before_repeat, repeat = frame_type(), frame_type()
+lib.strata_render(before_messages, 0, 3999)
+lib.strata_render(start_messages, 0, 4000)
+lib.strata_render(before_gmail, 0, 7999)
+lib.strata_render(start_gmail, 0, 8000)
+lib.strata_render(before_repeat, 0, 11999)
+lib.strata_render(repeat, 0, 12000)
+assert before_messages[122 * 176 + 10] != 1
+assert start_messages[122 * 176 + 10] == 1
+assert before_gmail[123 * 176 + 8] != 4
+assert start_gmail[123 * 176 + 8] == 4
+assert before_repeat[123 * 176 + 8] == 4
+assert repeat[123 * 176 + 8] != 4
 
 # Hardware stream packs two RGB111 pixels into RGB0/RGB0 nibbles.
 pattern, packed = frame_type(), packed_type()

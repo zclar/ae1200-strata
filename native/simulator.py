@@ -16,7 +16,10 @@ LIB.strata_scene_description.restype = ctypes.c_char_p
 COLORS = ((24, 29, 24), (61, 102, 142), (78, 140, 73), (101, 163, 157),
           (184, 59, 50), (140, 86, 125), (201, 184, 62), (169, 176, 162))
 FACEPLATE = (24, 28, 24)
+COLOR_BYTES = tuple(bytes(color) for color in COLORS)
+FACEPLATE_BYTES = bytes(FACEPLATE)
 LCD_BACKGROUND = "#a9b0a2"
+MASK_TAG = "faceplate-mask"
 PITCH = GEOMETRY["display"]["pixel_pitch_mm"]
 COVER_MIN, COVER_MAX = GEOMETRY["cover"]["bounds_xz_mm"]
 X0, Z0 = GEOMETRY["alignment"]["active_origin_xz_mm"]
@@ -46,6 +49,8 @@ for aperture in GEOMETRY["apertures"].values():
 def visible(x, y):
     return any(inside((x + .5, y + .5), polygon) for polygon in APERTURES)
 
+VISIBLE_PIXELS = tuple(visible(i % SIZE, i // SIZE) for i in range(SIZE * SIZE))
+
 def faceplate_point(x, z):
     return ((x - COVER_MIN[0]) / PITCH * SCALE,
             (z - COVER_MIN[1]) / PITCH * SCALE)
@@ -54,6 +59,10 @@ class Simulator:
     def __init__(self, root):
         self.root, self.scene, self.frame = root, 0, Frame()
         self.started = time.monotonic()
+        self.elapsed_ms = 0
+        self.image_item = None
+        self.mask_visible = None
+        self.image = tk.PhotoImage(width=SIZE * SCALE, height=SIZE * SCALE)
         root.title("AE1200 Emulator — Native Simulator")
         root.configure(bg="#111410")
         self.canvas = tk.Canvas(root, width=OUTER_W, height=OUTER_H,
@@ -69,11 +78,14 @@ class Simulator:
                        fg="#c2c9bd", bg="#111410", selectcolor="#242a22").grid(row=2, column=1, sticky="nw")
         tk.Label(root, text="30.63 × 29.35 mm cover  •  23.02 mm active", fg="#788174", bg="#111410").grid(row=3, column=1, sticky="nw")
         self.select(0)
-        self.root.after(250, self.animate)
+        self.root.after(10, self.animate)
 
     def animate(self):
+        # Animation time follows the wall clock. If rendering is briefly slow,
+        # skip an intermediate frame instead of slowing the watch itself.
+        self.elapsed_ms = int((time.monotonic() - self.started) * 1000) & 0xffffffff
         self.draw()
-        self.root.after(250, self.animate)
+        self.root.after(10, self.animate)
 
     def select(self, scene):
         self.scene = scene
@@ -82,28 +94,39 @@ class Simulator:
         self.draw()
 
     def draw(self):
-        elapsed_ms = int((time.monotonic() - self.started) * 1000) & 0xffffffff
-        LIB.strata_render(self.frame, self.scene, elapsed_ms)
+        LIB.strata_render(self.frame, self.scene, self.elapsed_ms)
         header = f"P6\n{SIZE} {SIZE}\n255\n".encode()
-        pixels = b''.join(bytes(COLORS[p]) if not self.mask.get() or visible(i % SIZE, i // SIZE)
-                           else bytes(FACEPLATE)
-                          for i, p in enumerate(self.frame))
-        image = tk.PhotoImage(data=header + pixels, format="PPM").zoom(SCALE)
-        self.image = image; self.canvas.delete("all")
+        mask_enabled = self.mask.get()
+        if mask_enabled:
+            pixels = b''.join(COLOR_BYTES[p] if VISIBLE_PIXELS[i]
+                              else FACEPLATE_BYTES
+                              for i, p in enumerate(self.frame))
+        else:
+            pixels = b''.join(COLOR_BYTES[p] for p in self.frame)
+        source = tk.PhotoImage(data=header + pixels, format="PPM")
+        self.image.tk.call(self.image, "copy", source, "-zoom", SCALE, SCALE)
+        if self.image_item is None:
+            self.build_canvas()
+        if self.mask_visible != mask_enabled:
+            self.canvas.itemconfigure(MASK_TAG,
+                                      state="normal" if mask_enabled else "hidden")
+            self.mask_visible = mask_enabled
+
+    def build_canvas(self):
         self.canvas.create_rectangle(12, 12, OUTER_W - 12, OUTER_H - 12,
                                      fill="#181c18", outline="#697369", width=3)
-        if self.mask.get():
-            # The module glass is wider than its active matrix. Keep the narrow
-            # inactive margin LCD-gray instead of exposing black cover beneath it.
-            for aperture in GEOMETRY["apertures"].values():
-                points = [faceplate_point(x, z) for x, z in aperture["contour_xz_mm"]]
-                self.canvas.create_polygon(points, fill=LCD_BACKGROUND, outline="")
-        self.canvas.create_image(PANEL_OX, PANEL_OY, image=image, anchor="nw")
-        if self.mask.get():
-            for polygon in APERTURES:
-                points = [(PANEL_OX + x * SCALE, PANEL_OY + y * SCALE) for x, y in polygon]
-                self.canvas.create_polygon(points, outline="#697369", fill="", width=1)
-            self.draw_faceplate_details()
+        # The module glass is wider than its active matrix. Keep the narrow
+        # inactive margin LCD-gray instead of exposing black cover beneath it.
+        for aperture in GEOMETRY["apertures"].values():
+            points = [faceplate_point(x, z) for x, z in aperture["contour_xz_mm"]]
+            self.canvas.create_polygon(points, fill=LCD_BACKGROUND, outline="", tags=MASK_TAG)
+        self.image_item = self.canvas.create_image(PANEL_OX, PANEL_OY,
+                                                   image=self.image, anchor="nw")
+        for polygon in APERTURES:
+            points = [(PANEL_OX + x * SCALE, PANEL_OY + y * SCALE) for x, y in polygon]
+            self.canvas.create_polygon(points, outline="#697369", fill="", width=1,
+                                       tags=MASK_TAG)
+        self.draw_faceplate_details()
 
     def draw_faceplate_details(self):
         details = GEOMETRY["decorations"]
@@ -117,14 +140,15 @@ class Simulator:
             radius_px = radius / PITCH * SCALE
             self.canvas.create_oval(cx - radius_px, cy - radius_px,
                                     cx + radius_px, cy + radius_px,
-                                    outline=color, width=width)
+                                    outline=color, width=width, tags=MASK_TAG)
         for tick in range(ring["tick_count"]):
             angle = math.radians(tick * 6 - 90)
             inner = ring["tick_inner_radius_mm"]
             outer = ring["tick_outer_radius_mm"] + (0.22 if tick % 5 == 0 else 0)
             x1, y1 = cx + math.cos(angle) * inner / PITCH * SCALE, cy + math.sin(angle) * inner / PITCH * SCALE
             x2, y2 = cx + math.cos(angle) * outer / PITCH * SCALE, cy + math.sin(angle) * outer / PITCH * SCALE
-            self.canvas.create_line(x1, y1, x2, y2, fill="#d4dbd0", width=2 if tick % 5 == 0 else 1)
+            self.canvas.create_line(x1, y1, x2, y2, fill="#d4dbd0",
+                                    width=2 if tick % 5 == 0 else 1, tags=MASK_TAG)
         for tick in range(0, 60, 5):
             angle = math.radians(tick * 6 - 90)
             radius = ring["number_radius_mm"] / PITCH * SCALE
@@ -132,15 +156,16 @@ class Simulator:
             self.canvas.create_text(cx + math.cos(angle) * radius,
                                     cy + math.sin(angle) * radius,
                                     text=value, fill="#d4dbd0",
-                                    font=("DejaVu Sans", -10, "bold"))
+                                    font=("DejaVu Sans", -10, "bold"), tags=MASK_TAG)
 
         for x, z in details["screws_xz_mm"]:
             sx, sy = faceplate_point(x, z)
             radius = 0.39 / PITCH * SCALE
             self.canvas.create_oval(sx - radius, sy - radius, sx + radius, sy + radius,
-                                    fill="#111511", outline="#626b62", width=2)
+                                    fill="#111511", outline="#626b62", width=2,
+                                    tags=MASK_TAG)
             self.canvas.create_line(sx - radius * .45, sy, sx + radius * .45, sy,
-                                    fill="#778077", width=1)
+                                    fill="#778077", width=1, tags=MASK_TAG)
 
         for item in details["labels"]:
             x, y = faceplate_point(*item["center_xz_mm"])
@@ -148,7 +173,8 @@ class Simulator:
             self.canvas.create_text(x, y, text=item["text"],
                                     fill=colors[item["color"]],
                                     angle=item.get("angle_deg", 0),
-                                    font=("DejaVu Sans", -pixel_height, "bold"))
+                                    font=("DejaVu Sans", -pixel_height, "bold"),
+                                    tags=MASK_TAG)
 
 if __name__ == "__main__":
     window = tk.Tk(); Simulator(window); window.mainloop()
