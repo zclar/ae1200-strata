@@ -159,7 +159,7 @@ static void bluetooth(uint8_t *f, int x, int y, uint8_t color)
 
 static void analog_clock(uint8_t *f)
 {
-    const int cx = 40, cy = 49, radius = 32;
+    const int cx = 38, cy = 49, radius = 32;
     disc(f, cx, cy, radius, STRATA_WHITE);
     for (int y = -radius; y <= radius; ++y) {
         for (int x = -radius; x <= radius; ++x) {
@@ -199,38 +199,38 @@ static void world_map(uint8_t *f)
         "                          ###",
     };
     for (int y = 42; y <= 78; y += 12)
-        for (int x = 101; x <= 172; x += 3) rect(f, x, y, 1, 1, STRATA_BLACK);
-    for (int x = 113; x <= 161; x += 24)
+        for (int x = 99; x <= 170; x += 3) rect(f, x, y, 1, 1, STRATA_BLACK);
+    for (int x = 111; x <= 159; x += 24)
         for (int y = 40; y <= 80; y += 3) rect(f, x, y, 1, 1, STRATA_BLACK);
     for (size_t row = 0; row < sizeof(rows) / sizeof(rows[0]); ++row)
         for (size_t column = 0; rows[row][column]; ++column)
             if (rows[row][column] == '#')
-                rect(f, 101 + (int)column * 2, 41 + (int)row * 2, 2, 2, STRATA_BLACK);
+                rect(f, 99 + (int)column * 2, 41 + (int)row * 2, 2, 2, STRATA_BLACK);
 }
 
 static void main_time(uint8_t *f)
 {
-    label(f, "SUN", 100, 99, 1, STRATA_BLACK);
-    label(f, "6-30", 139, 99, 1, STRATA_BLACK);
-    label(f, "PM", 8, 134, 1, STRATA_BLACK);
+    label(f, "SUN", 98, 99, 1, STRATA_BLACK);
+    label(f, "6-30", 137, 99, 1, STRATA_BLACK);
+    label(f, "PM", 6, 134, 1, STRATA_BLACK);
 
-    seven_digit(f, 1, 32, 122, 0, STRATA_BLACK);
-    seven_digit(f, 0, 54, 122, 0, STRATA_BLACK);
-    disc(f, 79, 135, 2, STRATA_BLACK);
-    disc(f, 79, 150, 2, STRATA_BLACK);
-    seven_digit(f, 0, 85, 122, 0, STRATA_BLACK);
-    seven_digit(f, 8, 107, 122, 0, STRATA_BLACK);
-    seven_digit(f, 3, 137, 140, 1, STRATA_BLACK);
-    seven_digit(f, 6, 150, 140, 1, STRATA_BLACK);
+    seven_digit(f, 1, 30, 122, 0, STRATA_BLACK);
+    seven_digit(f, 0, 52, 122, 0, STRATA_BLACK);
+    disc(f, 77, 135, 2, STRATA_BLACK);
+    disc(f, 77, 150, 2, STRATA_BLACK);
+    seven_digit(f, 0, 83, 122, 0, STRATA_BLACK);
+    seven_digit(f, 8, 105, 122, 0, STRATA_BLACK);
+    seven_digit(f, 3, 135, 140, 1, STRATA_BLACK);
+    seven_digit(f, 6, 148, 140, 1, STRATA_BLACK);
 }
 
 static void segment_face(uint8_t *f)
 {
     /* Original AE-1200 timekeeping layout, fitted to the four cover openings. */
     analog_clock(f);
-    label(f, "MUTE", 118, 10, 1, STRATA_BLACK);
-    label(f, "ALM SIG", 115, 20, 1, STRATA_BLACK);
-    bluetooth(f, 163, 11, STRATA_BLACK);
+    label(f, "MUTE", 116, 10, 1, STRATA_BLACK);
+    label(f, "ALM SIG", 113, 20, 1, STRATA_BLACK);
+    bluetooth(f, 161, 11, STRATA_BLACK);
     world_map(f);
     main_time(f);
 }

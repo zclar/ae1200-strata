@@ -24,4 +24,13 @@ assert_bounds("analog", (8.97483, 9.0))
 assert_bounds("status", (10.68, 2.58))
 assert_bounds("map", (10.68, 5.96))
 assert_bounds("main", (23.28, 9.8))
+
+# The active matrix is centered in the slightly wider main aperture. The
+# remaining edge is inactive panel glass, not exposed faceplate.
+main_x = [point[0] for point in geometry["apertures"]["main"]["contour_xz_mm"]]
+active_x = geometry["alignment"]["active_origin_xz_mm"][0]
+active_width = geometry["display"]["active_area_mm"][0]
+edge = (max(main_x) - min(main_x) - active_width) / 2
+assert math.isclose(active_x - min(main_x), edge, abs_tol=1e-6)
+assert math.isclose(max(main_x) - (active_x + active_width), edge, abs_tol=1e-6)
 print("validated four rounded/filleted faceplate contours")

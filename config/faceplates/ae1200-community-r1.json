@@ -39,7 +39,8 @@
   },
   "alignment": {
     "status": "estimated_centering_only",
-    "note": "The STL has no registration to the JDI active pixel origin. The simulator must apply translation/rotation from a physical panel and cover measurement before manufacturing.",
+    "active_origin_xz_mm": [3.79341, 16.248355],
+    "note": "The active matrix is centered on the aperture field. The cover is 0.2592 mm wider than the active matrix, so the simulator shows 0.1296 mm of inactive LCD glass at each side of the main opening. Confirm translation/rotation from a physical panel and cover measurement before manufacturing.",
     "do_not_use_for_cad": true
   },
   "decorations": {

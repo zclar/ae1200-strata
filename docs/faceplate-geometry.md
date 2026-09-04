@@ -23,9 +23,11 @@ aperture contours remain the geometry used for pixel clipping.
 
 The JDI LPM013M126A active area is 23.0208 × 23.0208 mm (176 × 176 pixels,
 0.1308 mm pitch). Therefore the main cover opening is 0.2592 mm wider than
-the active area. That does not prove a fit problem—the panel has inactive
-border/module area—but it does mean the display origin cannot be guessed from
-the opening dimensions alone.
+the active area. The reference alignment centers the active matrix, leaving
+0.1296 mm (approximately one pixel pitch) of inactive LCD glass visible at each
+side of the main opening. The emulator renders that glass in LCD gray but never
+places addressable graphics there. This does not prove a fit problem—the module
+itself is wider than the opening—but the origin still needs physical validation.
 
 Before freezing a mask, provide a straight-on CAD view or a calibrated photo
 of the actual cover and the panel. Record the active-area origin, rotation,

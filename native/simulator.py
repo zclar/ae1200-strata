@@ -15,11 +15,10 @@ LIB.strata_scene_description.restype = ctypes.c_char_p
 COLORS = ((24, 29, 24), (61, 102, 142), (78, 140, 73), (101, 163, 157),
           (184, 59, 50), (140, 86, 125), (201, 184, 62), (169, 176, 162))
 FACEPLATE = (24, 28, 24)
+LCD_BACKGROUND = "#a9b0a2"
 PITCH = GEOMETRY["display"]["pixel_pitch_mm"]
 COVER_MIN, COVER_MAX = GEOMETRY["cover"]["bounds_xz_mm"]
-# Center the community cover's measured aperture field over the JDI active area.
-X0 = 3.66381 - (23.28 - 23.0208) / 2
-Z0 = 17.41375 - (23.0208 - (38.10376 - 17.41375)) / 2
+X0, Z0 = GEOMETRY["alignment"]["active_origin_xz_mm"]
 SIZE, SCALE = 176, 3
 OUTER_W = round((COVER_MAX[0] - COVER_MIN[0]) / PITCH * SCALE)
 OUTER_H = round((COVER_MAX[1] - COVER_MIN[1]) / PITCH * SCALE)
@@ -82,6 +81,12 @@ class Simulator:
         self.image = image; self.canvas.delete("all")
         self.canvas.create_rectangle(12, 12, OUTER_W - 12, OUTER_H - 12,
                                      fill="#181c18", outline="#697369", width=3)
+        if self.mask.get():
+            # The module glass is wider than its active matrix. Keep the narrow
+            # inactive margin LCD-gray instead of exposing black cover beneath it.
+            for aperture in GEOMETRY["apertures"].values():
+                points = [faceplate_point(x, z) for x, z in aperture["contour_xz_mm"]]
+                self.canvas.create_polygon(points, fill=LCD_BACKGROUND, outline="")
         self.canvas.create_image(PANEL_OX, PANEL_OY, image=image, anchor="nw")
         if self.mask.get():
             for polygon in APERTURES:
