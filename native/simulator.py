@@ -3,6 +3,7 @@ import ctypes
 import json
 import math
 import pathlib
+import time
 import tkinter as tk
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -25,6 +26,9 @@ OUTER_H = round((COVER_MAX[1] - COVER_MIN[1]) / PITCH * SCALE)
 PANEL_OX = round((X0 - COVER_MIN[0]) / PITCH * SCALE)
 PANEL_OY = round((Z0 - COVER_MIN[1]) / PITCH * SCALE)
 Frame = ctypes.c_uint8 * (SIZE * SIZE)
+LIB.strata_render.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_uint,
+                              ctypes.c_uint32]
+LIB.strata_render.restype = None
 
 def inside(point, polygon):
     x, y = point; hit = False
@@ -49,6 +53,7 @@ def faceplate_point(x, z):
 class Simulator:
     def __init__(self, root):
         self.root, self.scene, self.frame = root, 0, Frame()
+        self.started = time.monotonic()
         root.title("AE1200 Emulator — Native Simulator")
         root.configure(bg="#111410")
         self.canvas = tk.Canvas(root, width=OUTER_W, height=OUTER_H,
@@ -64,6 +69,11 @@ class Simulator:
                        fg="#c2c9bd", bg="#111410", selectcolor="#242a22").grid(row=2, column=1, sticky="nw")
         tk.Label(root, text="30.63 × 29.35 mm cover  •  23.02 mm active", fg="#788174", bg="#111410").grid(row=3, column=1, sticky="nw")
         self.select(0)
+        self.root.after(250, self.animate)
+
+    def animate(self):
+        self.draw()
+        self.root.after(250, self.animate)
 
     def select(self, scene):
         self.scene = scene
@@ -72,7 +82,8 @@ class Simulator:
         self.draw()
 
     def draw(self):
-        LIB.strata_render(self.frame, self.scene, 0)
+        elapsed_ms = int((time.monotonic() - self.started) * 1000) & 0xffffffff
+        LIB.strata_render(self.frame, self.scene, elapsed_ms)
         header = f"P6\n{SIZE} {SIZE}\n255\n".encode()
         pixels = b''.join(bytes(COLORS[p]) if not self.mask.get() or visible(i % SIZE, i // SIZE)
                            else bytes(FACEPLATE)

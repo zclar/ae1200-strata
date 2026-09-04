@@ -183,9 +183,26 @@ static void bluetooth(uint8_t *f, int x, int y, uint8_t color)
     rect(f, x, y + 9, 2, 2, color); rect(f, x + 1, y + 7, 3, 2, color);
 }
 
-static void analog_clock(uint8_t *f)
+static void analog_clock(uint8_t *f, uint32_t total_seconds)
 {
+    static const int8_t clock_x[60] = {
+        0, 3, 6, 9, 12, 14, 17, 19, 22, 23, 25, 26, 28, 28, 29,
+        29, 29, 28, 28, 26, 25, 23, 22, 19, 17, 14, 12, 9, 6, 3,
+        0, -3, -6, -9, -12, -14, -17, -19, -22, -23, -25, -26,
+        -28, -28, -29, -29, -29, -28, -28, -26, -25, -23, -22,
+        -19, -17, -14, -12, -9, -6, -3,
+    };
+    static const int8_t clock_y[60] = {
+        -29, -29, -28, -28, -26, -25, -23, -22, -19, -17, -15,
+        -12, -9, -6, -3, 0, 3, 6, 9, 12, 14, 17, 19, 22, 23, 25,
+        26, 28, 28, 29, 29, 29, 28, 28, 26, 25, 23, 22, 19, 17,
+        15, 12, 9, 6, 3, 0, -3, -6, -9, -12, -15, -17, -19, -22,
+        -23, -25, -26, -28, -28, -29,
+    };
     const int cx = 38, cy = 49, radius = 32;
+    unsigned int second = total_seconds % 60u;
+    unsigned int minute = (total_seconds / 60u) % 60u;
+    unsigned int hour = ((total_seconds / 3600u) % 12u) * 5u + minute / 12u;
     disc(f, cx, cy, radius, STRATA_WHITE);
     for (int y = -radius; y <= radius; ++y) {
         for (int x = -radius; x <= radius; ++x) {
@@ -198,8 +215,11 @@ static void analog_clock(uint8_t *f)
     line(f, cx + 29, cy, cx + 7, cy, STRATA_BLACK);
     line(f, cx, cy + 29, cx, cy + 7, STRATA_BLACK);
     line(f, cx - 29, cy, cx - 7, cy, STRATA_BLACK);
-    line(f, cx, cy, cx - 17, cy - 10, STRATA_BLACK);
-    line(f, cx, cy, cx + 17, cy - 21, STRATA_BLACK);
+    line(f, cx, cy, cx + clock_x[hour] * 15 / 29,
+         cy + clock_y[hour] * 15 / 29, STRATA_BLACK);
+    line(f, cx, cy, cx + clock_x[minute] * 23 / 29,
+         cy + clock_y[minute] * 23 / 29, STRATA_BLACK);
+    line(f, cx, cy, cx + clock_x[second], cy + clock_y[second], STRATA_BLACK);
     disc(f, cx, cy, 4, STRATA_BLACK);
 }
 
@@ -247,13 +267,20 @@ static void world_map(uint8_t *f)
     rect(f, 155, 66, 2, 2, STRATA_BLACK); /* Indonesia */
     line(f, 99, 60, 170, 60, STRATA_BLACK);
 
-    /* New York / UTC-5: the stock display marks the selected zone with a dark band. */
-    rect(f, 119, 40, 3, 40, STRATA_BLACK);
-    disc(f, 120, 52, 2, STRATA_BLACK);
+    /* Hollow UTC-5 marker keeps the selected zone visible without hiding the map. */
+    line(f, 117, 40, 123, 40, STRATA_BLUE);
+    line(f, 123, 40, 123, 79, STRATA_BLUE);
+    line(f, 123, 79, 117, 79, STRATA_BLUE);
+    line(f, 117, 79, 117, 40, STRATA_BLUE);
 }
 
-static void main_time(uint8_t *f)
+static void main_time(uint8_t *f, uint32_t total_seconds, uint32_t elapsed_ms)
 {
+    unsigned int second = total_seconds % 60u;
+    unsigned int minute = (total_seconds / 60u) % 60u;
+    unsigned int hour = (total_seconds / 3600u) % 12u;
+    if (hour == 0u) hour = 12u;
+
     label(f, "SUN", 103, 100, 1, STRATA_BLACK);
     label(f, "6-30", 135, 100, 1, STRATA_BLACK);
     line(f, 130, 96, 130, 113, STRATA_BLACK);
@@ -261,25 +288,28 @@ static void main_time(uint8_t *f)
     label(f, "DST", 139, 123, 1, STRATA_BLACK);
     label(f, "PM", 6, 134, 1, STRATA_BLACK);
 
-    seven_digit(f, 1, 30, 122, 0, STRATA_BLACK);
-    seven_digit(f, 0, 52, 122, 0, STRATA_BLACK);
-    disc(f, 77, 135, 2, STRATA_BLACK);
-    disc(f, 77, 150, 2, STRATA_BLACK);
-    seven_digit(f, 0, 83, 122, 0, STRATA_BLACK);
-    seven_digit(f, 8, 105, 122, 0, STRATA_BLACK);
-    seven_digit(f, 3, 135, 140, 1, STRATA_BLACK);
-    seven_digit(f, 6, 148, 140, 1, STRATA_BLACK);
+    if (hour >= 10u) seven_digit(f, hour / 10u, 30, 122, 0, STRATA_BLACK);
+    seven_digit(f, hour % 10u, 52, 122, 0, STRATA_BLACK);
+    if ((elapsed_ms / 500u) % 2u == 0u) {
+        disc(f, 77, 135, 2, STRATA_BLACK);
+        disc(f, 77, 150, 2, STRATA_BLACK);
+    }
+    seven_digit(f, minute / 10u, 83, 122, 0, STRATA_BLACK);
+    seven_digit(f, minute % 10u, 105, 122, 0, STRATA_BLACK);
+    seven_digit(f, second / 10u, 135, 140, 1, STRATA_BLACK);
+    seven_digit(f, second % 10u, 148, 140, 1, STRATA_BLACK);
 }
 
-static void segment_face(uint8_t *f)
+static void segment_face(uint8_t *f, uint32_t elapsed_ms)
 {
+    uint32_t total_seconds = 10u * 3600u + 8u * 60u + 36u + elapsed_ms / 1000u;
     /* Original AE-1200 timekeeping layout, fitted to the four cover openings. */
-    analog_clock(f);
+    analog_clock(f, total_seconds);
     label(f, "MUTE", 116, 10, 1, STRATA_BLACK);
     label(f, "ALM SIG", 113, 20, 1, STRATA_BLACK);
     bluetooth(f, 161, 11, STRATA_BLUE);
     world_map(f);
-    main_time(f);
+    main_time(f, total_seconds, elapsed_ms);
 }
 
 unsigned int strata_scene_count(void) { return (unsigned int)(sizeof(scenes) / sizeof(scenes[0])); }
@@ -289,10 +319,9 @@ const char *strata_scene_description(unsigned int scene) { return scenes[scene %
 void strata_render(uint8_t *frame, unsigned int scene, uint32_t elapsed_ms)
 {
     (void)scene;
-    (void)elapsed_ms;
     if (!frame) return;
     fill(frame, STRATA_WHITE);
-    segment_face(frame);
+    segment_face(frame, elapsed_ms);
 }
 
 void strata_pack_line_rgb111(const uint8_t *frame, unsigned int line,

@@ -22,8 +22,8 @@ To flash through the stock UF2 bootloader:
 
 1. Double-tap reset on the ItsyBitsy; the `ITSY840BOOT` drive appears.
 2. Copy `build/zephyr/zephyr.uf2` to that drive.
-3. The board restarts and writes the classic face once; EXTCOMIN continues at
-   1 Hz while the panel remains enabled.
+3. The board restarts and refreshes the animated classic face twice per second;
+   EXTCOMIN continues independently at 1 Hz while the panel remains enabled.
 
 The exact FPC wiring and decoupling are in `docs/hardware-wiring.md`. Do not
 connect power until adapter pin order has been checked for reversal with a

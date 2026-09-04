@@ -27,6 +27,10 @@ for scene in range(lib.strata_scene_count()):
 
 assert len(hashes) == lib.strata_scene_count(), "scene outputs are not unique"
 
+animated = frame_type()
+lib.strata_render(animated, 0, 2234)
+assert bytes(animated) != bytes(first), "classic scene did not advance with elapsed time"
+
 # Hardware stream packs two RGB111 pixels into RGB0/RGB0 nibbles.
 pattern, packed = frame_type(), packed_type()
 for x in range(176):

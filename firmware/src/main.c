@@ -13,20 +13,23 @@ static uint8_t framebuffer[STRATA_FRAME_BYTES];
 int main(void)
 {
 	int result;
+	uint32_t started;
 
-	strata_render(framebuffer, 0, 0);
 	result = strata_lpm013m126a_init(&panel);
 	if (result < 0) {
 		printk("LPM013M126A initialization failed: %d\n", result);
 		return result;
 	}
 
-	result = strata_lpm013m126a_write_frame(&panel, framebuffer);
-	if (result < 0) {
-		printk("LPM013M126A frame write failed: %d\n", result);
-		return result;
+	printk("AE1200 animated classic face started\n");
+	started = k_uptime_get_32();
+	for (;;) {
+		strata_render(framebuffer, 0, k_uptime_get_32() - started);
+		result = strata_lpm013m126a_write_frame(&panel, framebuffer);
+		if (result < 0) {
+			printk("LPM013M126A frame write failed: %d\n", result);
+			return result;
+		}
+		k_sleep(K_MSEC(500));
 	}
-	printk("AE1200 classic face written to LPM013M126A\n");
-
-	for (;;) k_sleep(K_FOREVER);
 }
