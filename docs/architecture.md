@@ -2,17 +2,18 @@
 
 ## Goal
 
-V1 is a non-interactive product demonstration. It cycles through representative
-watch faces and feature layouts automatically. The desktop simulator is the
-fast feedback loop; firmware and display transport are separate targets.
+V1 is a non-interactive product demonstration. The current reference scene is
+the classic AE-1200 face; additional layouts can be added after the physical
+mask is calibrated. The desktop simulator is the fast feedback loop; firmware
+and display transport are separate targets.
 
 ## Proposed layers
 
 1. **Demo model** — scene order, timing, and synthetic data, written in portable C.
 2. **Watch UI** — portable C drawing code that produces a fixed 176 x 176 RGB111
    framebuffer. This is the single visual source of truth.
-3. **Display backend** — desktop SDL/WebAssembly during visual development;
-   Zephyr display API and the LPM013M126A SPI driver on hardware.
+3. **Display backend** — native Tk during visual development; the in-tree
+   LPM013M126A SPI transport on Zephyr hardware.
 4. **Board configuration** — Devicetree overlays for nRF52840 development hardware
    and nRF54L15 production hardware.
 
@@ -69,14 +70,14 @@ same safe regions drive the simulator, UI layout checks, and mechanical CAD.
 Use Nordic nRF Connect SDK/Zephyr rather than the legacy nRF5 SDK. The same app
 can be built for an nRF52840 development board and later for
 `nrf54l15dk/nrf54l15/cpuapp`, with board-specific pins and peripherals confined
-to Devicetree overlays. A custom Zephyr display driver should own SPI framing,
-line updates, display enable, and any required polarity/inversion timing.
+to Devicetree overlays. The custom transport in `firmware/src/lpm013m126a.c`
+owns SPI framing, line updates, display enable, and COM polarity timing.
 
 Do not connect the bare panel until the exact panel revision's electrical and
 timing tables, FPC pinout, supply rails, and level requirements have been checked
 against the carrier board.
 
-Hardware validation needs the exact nRF52840 board identifier, programmer/debug
-method, display breakout or FPC adapter schematic, assigned pins, and power-rail
-details. These become a board-specific Devicetree overlay rather than assumptions
-in application code.
+The development target is the Adafruit ItsyBitsy nRF52840 Express using its UF2
+bootloader. Its reserved pins and power rails are captured in the board-specific
+Devicetree overlay and `docs/hardware-wiring.md`; the remaining validation step
+is continuity-checking the passive FPC adapter before applying power.

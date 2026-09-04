@@ -16,7 +16,9 @@ done
 strata_bin_dir=$(cd -P "$(dirname "$strata_source")" >/dev/null 2>&1 && pwd)
 strata_root=$(cd "$strata_bin_dir/.." >/dev/null 2>&1 && pwd -P)
 strata_source_file=$strata_root/core/src/strata_display.c
+strata_jdi_source_file=$strata_root/core/src/strata_jdi.c
 strata_header_file=$strata_root/core/include/strata_display.h
+strata_jdi_header_file=$strata_root/core/include/strata_jdi.h
 strata_library=$strata_root/build/libstrata_display.so
 strata_simulator=$strata_root/native/simulator.py
 strata_force_build=false
@@ -76,11 +78,15 @@ while (($#)); do
 done
 
 [[ -f "$strata_source_file" ]] || strata_die "renderer source is missing: $strata_source_file"
+[[ -f "$strata_jdi_source_file" ]] || strata_die "JDI source is missing: $strata_jdi_source_file"
 [[ -f "$strata_header_file" ]] || strata_die "renderer header is missing: $strata_header_file"
+[[ -f "$strata_jdi_header_file" ]] || strata_die "JDI header is missing: $strata_jdi_header_file"
 [[ -f "$strata_simulator" ]] || strata_die "simulator is missing: $strata_simulator"
 
 strata_needs_build=$strata_force_build
-if [[ ! -f "$strata_library" || "$strata_source_file" -nt "$strata_library" || "$strata_header_file" -nt "$strata_library" ]]; then
+if [[ ! -f "$strata_library" || "$strata_source_file" -nt "$strata_library" ||
+      "$strata_jdi_source_file" -nt "$strata_library" || "$strata_header_file" -nt "$strata_library" ||
+      "$strata_jdi_header_file" -nt "$strata_library" ]]; then
     strata_needs_build=true
 fi
 
@@ -105,7 +111,7 @@ if [[ "$strata_needs_build" == true ]]; then
     strata_temp_library=$strata_library.tmp.$$
     printf 'Building AE1200 Strata renderer...\n'
     if ! "${strata_cc_command[@]}" "${strata_compile_flags[@]}" -fPIC -shared \
-        -I"$strata_root/core/include" "$strata_source_file" \
+        -I"$strata_root/core/include" "$strata_source_file" "$strata_jdi_source_file" \
         "${strata_link_flags[@]}" -o "$strata_temp_library"; then
         strata_die 'the shared renderer failed to build; see compiler output above'
     fi

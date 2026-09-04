@@ -1,0 +1,14 @@
+&spi1 {
+	status = "okay";
+
+	strata_panel: lpm013m126a@0 {
+		compatible = "strata,lpm013m126a";
+		reg = <0>;
+		spi-max-frequency = <1000000>;
+		scs-gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
+		extcomin-gpios = <&gpio1 8 GPIO_ACTIVE_HIGH>;
+		disp-gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+		extcomin-frequency = <1>;
+		status = "okay";
+	};
+};

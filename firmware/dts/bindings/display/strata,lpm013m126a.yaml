@@ -1,0 +1,26 @@
+description: Japan Display LPM013M126A SPI memory-in-pixel panel
+
+compatible: "strata,lpm013m126a"
+
+include: spi-device.yaml
+
+properties:
+  scs-gpios:
+    type: phandle-array
+    required: true
+    description: Active-high panel chip select controlled by this driver
+
+  disp-gpios:
+    type: phandle-array
+    required: true
+    description: Active-high display enable
+
+  extcomin-gpios:
+    type: phandle-array
+    required: true
+    description: External COM inversion input; EXTMODE must be tied high
+
+  extcomin-frequency:
+    type: int
+    required: true
+    description: EXTCOMIN square-wave frequency in hertz

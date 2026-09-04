@@ -12,7 +12,7 @@ renderer. It requires GCC, Python 3, and Tk 8.6, with no third-party packages.
 make app
 ```
 
-Install **AE1200 Strata** in the current Linux user's application menu:
+Install **AE1200 Emulator** in the current Linux user's application menu:
 
 ```sh
 make install-app
@@ -39,3 +39,13 @@ See [docs/architecture.md](docs/architecture.md) for the firmware plan,
 [docs/hardware-wiring.md](docs/hardware-wiring.md) for the reserved development
 wiring, and [docs/faceplate-geometry.md](docs/faceplate-geometry.md) for the
 current mask evidence and CAD calibration requirements.
+
+## nRF52840 hardware target
+
+The custom Zephyr driver, ItsyBitsy overlay, power sequence, EXTCOMIN service,
+and UF2 instructions are in [firmware/README.md](firmware/README.md). From an
+nRF Connect SDK terminal, build the exact emulator framebuffer with:
+
+```sh
+make firmware
+```
