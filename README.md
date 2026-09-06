@@ -5,7 +5,7 @@ memory-in-pixel (MIP) display.
 
 ## Native V1 display app
 
-The native simulator and future firmware share a portable C framebuffer
+The native simulator and firmware share a portable C framebuffer
 renderer. It requires GCC, Python 3, and Tk 8.6, with no third-party packages.
 
 ```sh
@@ -48,9 +48,14 @@ current mask evidence and CAD calibration requirements.
 
 ## nRF52840 hardware target
 
+First working hardware demo confirmed on **2026-09-06**, using the ItsyBitsy
+nRF52840 Express and JDI LPM013M126A. Display SI connects to **MOSI**; leave
+**MISO disconnected**. The emulator shows this confirmed baseline while keeping
+the faceplate dimensions and reflective color appearance marked as provisional.
+
 The custom Zephyr driver, ItsyBitsy overlay, power sequence, EXTCOMIN service,
 and UF2 instructions are in [firmware/README.md](firmware/README.md). From an
-nRF Connect SDK terminal, build the exact emulator framebuffer with:
+environment with nRF Connect SDK v2.9.3 installed, build the same renderer with:
 
 ```sh
 make firmware

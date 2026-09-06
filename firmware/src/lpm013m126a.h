@@ -21,7 +21,7 @@ struct strata_lpm013m126a {
 
 #define STRATA_LPM013M126A_DT_SPEC_GET(node_id)                                      \
 	{                                                                              \
-		.bus = SPI_DT_SPEC_GET(node_id, SPI_OP_MODE_CONTROLLER | SPI_WORD_SET(8) | \
+		.bus = SPI_DT_SPEC_GET(node_id, SPI_OP_MODE_MASTER | SPI_WORD_SET(8) | \
 						  SPI_TRANSFER_MSB, 0),                       \
 		.scs = GPIO_DT_SPEC_GET(node_id, scs_gpios),                                \
 		.disp = GPIO_DT_SPEC_GET(node_id, disp_gpios),                              \

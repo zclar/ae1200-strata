@@ -72,6 +72,16 @@ for x in range(176):
 lib.strata_pack_line_rgb111(pattern, 0, packed)
 assert list(packed[:4]) == [0x02, 0x46, 0x8A, 0xCE]
 
+# A background pixel is hardware white, not the desktop's optical gray tint.
+assert first[0] == 7, "demo background must use RGB111 white"
+for color, expected in ((0, 0x00), (1, 0x22), (2, 0x44), (4, 0x88), (7, 0xEE)):
+    for x in range(176):
+        pattern[x] = color
+    lib.strata_pack_line_rgb111(pattern, 0, packed)
+    assert all(byte == expected for byte in packed), f"incorrect color encoding: {color}"
+for x in range(176):
+    pattern[x] = x % 8
+
 # A hardware line packet is command + normal 1-based JDI row + RGB0 data
 # + 16 dummy clocks. Bit reversal is used by Sharp panels, not this JDI panel.
 packet = packet_type()

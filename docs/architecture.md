@@ -18,10 +18,10 @@ and display transport are separate targets.
    and nRF54L15 production hardware.
 
 The initial browser prototype intentionally has no package dependencies and is
-for rapid UX exploration. It is not the accuracy reference. Before hardware
-validation, its scene direction will move into the shared C renderer, compiled
-for both the simulator and Zephyr. No layout should be maintained independently
-in JavaScript and firmware.
+for rapid UX exploration. It is not the accuracy reference. The native emulator
+and Nordic firmware compile the same C renderer. The user confirmed the first
+working ItsyBitsy/JDI hardware demo on 2026-09-06. No layout should be maintained
+independently in JavaScript and firmware.
 
 ## Simulator-to-hardware parity
 
@@ -101,5 +101,5 @@ against the carrier board.
 
 The development target is the Adafruit ItsyBitsy nRF52840 Express using its UF2
 bootloader. Its reserved pins and power rails are captured in the board-specific
-Devicetree overlay and `docs/hardware-wiring.md`; the remaining validation step
-is continuity-checking the passive FPC adapter before applying power.
+Devicetree overlay and `docs/hardware-wiring.md`. The first hardware demo is
+confirmed; final mechanical calibration and nRF54L15 bring-up remain future work.

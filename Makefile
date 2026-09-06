@@ -19,7 +19,7 @@ uninstall-app:
 	./packaging/uninstall-linux.sh
 
 firmware:
-	west build -p always -b adafruit_itsybitsy/nrf52840 firmware
+	bash ./bin/build-firmware
 
 test: $(BUILD)/libstrata_display.so
 	python3 -m py_compile native/simulator.py

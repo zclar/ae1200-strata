@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+strata_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
+strata_ncs_version=${STRATA_NCS_VERSION:-v2.9.3}
+strata_ncs_root=${STRATA_NCS_ROOT:-"$HOME/ncs"}
+strata_nrfutil=$(command -v nrfutil || true)
+if [[ -z "$strata_nrfutil" ]]; then
+    strata_nrfutil="$HOME/.local/bin/nrfutil"
+fi
+
+if [[ ! -x "$strata_nrfutil" || ! -d "$strata_ncs_root/$strata_ncs_version/zephyr" ]]; then
+    printf 'Install Nordic nRF Util with sdk-manager, then run:\n' >&2
+    printf '  nrfutil sdk-manager install %s --install-dir "%s"\n' \
+        "$strata_ncs_version" "$strata_ncs_root" >&2
+    exit 1
+fi
+
+exec "$strata_nrfutil" sdk-manager toolchain launch \
+    --install-dir "$strata_ncs_root" --ncs-version "$strata_ncs_version" \
+    --chdir "$strata_ncs_root/$strata_ncs_version" -- \
+    west build --no-sysbuild -d "$strata_root/build/firmware" \
+    -b adafruit_itsybitsy/nrf52840 "$strata_root/firmware" "$@"

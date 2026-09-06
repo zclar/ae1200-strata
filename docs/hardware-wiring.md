@@ -1,6 +1,6 @@
 # nRF52840 development wiring
 
-This is the reserved bring-up map for the Adafruit ItsyBitsy nRF52840 Express
+This is the hardware-confirmed bring-up map (2026-09-06) for the Adafruit ItsyBitsy nRF52840 Express
 and the JDI LPM013M126A FPC. Pin numbers below are **JDI FPC pin numbers**, not
 the numbering printed on an FPC-to-DIP adapter. Continuity-check the adapter:
 bottom-contact connectors can mirror the apparent pin order.
@@ -18,7 +18,12 @@ bottom-contact connectors can mirror the apparent pin order.
 | 9 | VSS | GND |
 | 10 | VSSA | GND |
 
-MISO is unused. Start SPI at 1 MHz, mode 0, MSB first; the panel specification
+**Leave MISO disconnected. Display pin 2 (SI) goes to MOSI.** The panel has no
+data output. During first bring-up the screen glitched; the user confirmed
+working output following the MOSI/MISO wiring clarification. Keep this pin map
+as the development baseline.
+
+Start SPI at 1 MHz, mode 0, MSB first; the panel specification
 limit is 2 MHz. Keep the panel on the regulated 3V/3.3V rail only—never VHI,
 USB, or BAT. Add local decoupling at the FPC: 100 nF from VDDA to VSSA and
 1 µF from VDD to VSS. The datasheet reference also shows 100 nF on DISP, but
