@@ -97,7 +97,7 @@ assert 6 not in region(render_at(1999), *circle_box)
 assert 6 in region(render_at(2000), *circle_box)
 assert 6 in region(render_at(5999), *circle_box)
 assert 6 not in region(render_at(6000), *circle_box)
-rain_box = (3, 72, 70, 10)
+rain_box = (3, 68, 70, 14)
 assert 1 not in region(render_at(9999), *rain_box)
 assert 1 in region(render_at(10000), *rain_box)
 assert 1 in region(render_at(13999), *rain_box)
@@ -126,7 +126,7 @@ for ms in (2000, 6000, 10000):
     assert set(region(render_at(ms), 146, 42, 23, 7)) == {7}, "DEMO label was not removed"
 for ms in (6000, 10000, 14800):
     cloud = region(render_at(ms), 9, 31, 60, 32)
-    assert 0 in cloud and 1 in cloud and 7 in cloud, "cloud must retain outline, shadow, and fill"
+    assert set(cloud) == {0, 7}, "cloud body/shadows must use real black/white pixels"
 
 # Large timestamps must still select valid RGB111 frames.
 assert max(render_at(0xffffffff)) <= 7

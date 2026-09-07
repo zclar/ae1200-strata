@@ -203,19 +203,6 @@ static void polygon(uint8_t *f, int origin_x, int origin_y,
     }
 }
 
-static void scaled_polygon(uint8_t *f, int origin_x, int origin_y,
-                           const struct point *points, size_t count,
-                           int numerator, int denominator, uint8_t color)
-{
-    struct point scaled[32];
-    if (count > ARRAY_SIZE(scaled)) return;
-    for (size_t i = 0; i < count; ++i) {
-        scaled[i].x = points[i].x * numerator / denominator;
-        scaled[i].y = points[i].y * numerator / denominator;
-    }
-    polygon(f, origin_x, origin_y, scaled, count, color);
-}
-
 static void bluetooth(uint8_t *f, int x, int y, uint8_t color)
 {
     rect(f, x + 3, y, 2, 14, color); rect(f, x + 5, y + 2, 3, 2, color);
@@ -406,128 +393,163 @@ static const struct weather_sample weather_samples[] = {
     {"64", "92%", "0", "RAIN 95%"},
 };
 
-static struct point radial_point(int dx, int dy, int radius, int tangent)
+/*
+ * Hand-authored sprites, two display pixels per cell, following the supplied
+ * September 6 references. W=white, S=light stipple, M=dark stipple,
+ * .=transparent. Stipple uses actual black/white RGB111 pixels.
+ */
+static const char sun_sprite[32][33] = {
+    "...............YYY..............",
+    ".......YYY....YYYY..............",
+    "......YYYY....YYY...............",
+    ".....YYY.....YYYY.......YYY.....",
+    ".....YYY....YYYYYYY....YYYYY....",
+    ".....YYYY..YYYYYYYYYYYYYYYYYY...",
+    "......YYYYYYYYYYYYYYYYYYYY.YY...",
+    "......YYYYYYYYYYYYYYYYYYYYY.....",
+    "...YY.YYYYYYYYYYYYYYYYYYYY......",
+    "..YYY.YYYYYYYYYYYYYYYYYYYY..YY..",
+    "...YYYYYYYYYYYYYYYYYYYYYYYY.YYY.",
+    ".....YYYYYYYYYYYYYYYYYYYYYYYY...",
+    ".YY.YYYYYYYYYYYYYYYYYYYYYYYYYY..",
+    ".YYYYYYYYYYYYYYYYYYYYYYYYYYYYY..",
+    ".YYYYYYYYYYYYYYYYYYYYYYYYYYYY...",
+    ".YYYYYYYYYYYYYYYYYYYYYYYYYY.....",
+    "..YYYYYYYYYYYYYYYYYYYYYYYYY.....",
+    "...YYYYYYYYYYYYYYYYYYYYYYYYY....",
+    "...YYYYYYYYYYYYYYYYYYYYYYYYYYY..",
+    "..YYYYYYYYYYYYYYYYYYYYYYYYYYYY..",
+    "..YYYYYYYYYYYYYYYYYYYYYYYYY.....",
+    "...YYYYYYYYYYYYYYYYYYYYYYYY.....",
+    "....YYYYYYYYYYYYYYYYYYYYYYY.....",
+    "...YYYYYYYYYYYYYYYYYYYYYYYYYYY..",
+    "..YYYYYYYYYYYYYYYYYYYYYYYYYYYY..",
+    "..YYYYYYY.YYYYYYYYYYYYYYYYYYY...",
+    "...YYYYY..YYYYYYYYYYYYYYYYYY....",
+    "...........YYYYYYYYYYYYYYY.....",
+    ".............YYYYYYY....YY......",
+    "..............YYYYY.............",
+    "...............YYY..............",
+    "................................",
+};
+
+static const char cloud_sprite[24][33] = {
+    ".................WWWWW..........",
+    "...............WWWWWWWWW........",
+    "..............WWWWWWWWWWW.......",
+    ".............WWWWWWWWWWWWW......",
+    ".........SSSWWWWWWWWWWWWWW......",
+    "........SSSSWWWWWWWWWWWWWWW.....",
+    ".......SSSWWWWWWWWWWWWWWWWW.....",
+    "......SWWWWWWWWWWWWWWWWWWWW.....",
+    ".....WWWWWWWWWWWWWWWWWWWWWWWWW..",
+    "....WWWWWWWWWWWWWWWWWWWWWWWWWWW.",
+    "...WWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "..WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    ".SWWWWWWWWWWWWWWWSWWWWWWWWWWWWWW",
+    "SSWWWWWWWWWWWWWWWSSWWWWWWWWWWWWW",
+    "SSWWWWWWWWWWWWWWSSWWWWWWWWWWWWWS",
+    "SSSWWWWWWWWWSWWWSSWWWWWWWWWWSSSS",
+    ".SSSSWWWWWSSSWWSSWWWWWWWWWWWSSS.",
+    ".SSSSSSSSSSSSSSSSWWWWWWWWWSSSSS.",
+    "..MMMMSSSSSSSSSSSWWWWWWWWSSSSS..",
+    "......MMSSSSSMMMSSWWWWWSSSSSMM..",
+    ".......MSSSSSM..MSSSSSSSSMM.....",
+    "........MMMMM....MSSSSSSMM......",
+    "..................MMMMMM........",
+    "................................",
+};
+
+static char sprite_cell(const char rows[][33], int height, int x, int y)
 {
-    struct point result;
-    result.x = (dx * radius - dy * tangent) / 100;
-    result.y = (dy * radius + dx * tangent) / 100;
-    return result;
+    if (x < 0 || y < 0 || x >= 64 || y >= height * 2) return '.';
+    return rows[y / 2][x / 2];
 }
 
-static void weather_sun_beam(uint8_t *f, int dx, int dy, int sway, int length)
+static int sun_sway(uint32_t ms)
 {
-    struct point outer[] = {
-        radial_point(dx, dy, 14, 5), radial_point(dx, dy, 21, 5),
-        radial_point(dx, dy, length, sway + 2),
-        radial_point(dx, dy, length, sway - 2),
-        radial_point(dx, dy, 21, -5),
-        radial_point(dx, dy, 14, -5),
+    /* One 2.4-second cosine cycle, interpolated before rounding to panel pixels. */
+    static const int8_t wave[] = {
+        -32, -31, -28, -23, -16, -8, 0, 8, 16, 23, 28, 31,
+        32, 31, 28, 23, 16, 8, 0, -8, -16, -23, -28, -31,
     };
-    struct point warm[] = {
-        radial_point(dx, dy, 15, 3), radial_point(dx, dy, 21, 3),
-        radial_point(dx, dy, length - 2, sway + 1),
-        radial_point(dx, dy, length - 2, sway - 1),
-        radial_point(dx, dy, 21, -3),
-        radial_point(dx, dy, 15, -3),
-    };
-    struct point light[] = {
-        radial_point(dx, dy, 17, 1), radial_point(dx, dy, 21, 2),
-        radial_point(dx, dy, length - 5, sway + 1),
-        radial_point(dx, dy, length - 5, sway - 1),
-        radial_point(dx, dy, 21, -2),
-        radial_point(dx, dy, 17, -1),
-    };
-    polygon(f, 38, 49, outer, ARRAY_SIZE(outer), STRATA_BLACK);
-    polygon(f, 38, 49, warm, ARRAY_SIZE(warm), STRATA_RED);
-    polygon(f, 38, 49, light, ARRAY_SIZE(light), STRATA_YELLOW);
+    unsigned int i = (ms % 2400u) / 100u;
+    int fraction = (int)(ms % 100u);
+    return wave[i] + (wave[(i + 1u) % ARRAY_SIZE(wave)] - wave[i]) * fraction / 100;
+}
+
+static int sun_occupied(int x, int y, int wave_top, int wave_bottom)
+{
+    int dx = x - 31, dy = y - 31;
+    int radius = dx * dx + dy * dy;
+    /* Bend the connected tips tangentially by at most two pixels.
+     * Inverse mapping avoids gaps; the inner body is stationary. */
+    int strength = radius > 400 ? radius - 400 : 0;
+    if (strength > 500) strength = 500;
+    int wave = dy < 0 ? wave_top : wave_bottom;
+    int offset_x = -dy * strength * wave / (31 * 500 * 16);
+    int offset_y = dx * strength * wave / (31 * 500 * 16);
+    int sx = x - offset_x - 2, sy = y - offset_y - 2;
+    if (sx < 0 || sy < 0 || sx >= 60 || sy >= 60) return 0;
+    return sprite_cell(sun_sprite, 32, sx * 64 / 60, sy * 64 / 60) != '.';
 }
 
 static void weather_sun(uint8_t *f, uint32_t local_ms)
 {
-    static const struct point directions[] = {
-        {0, -100}, {50, -87}, {87, -50}, {100, 0},
-        {87, 50}, {50, 87}, {0, 100}, {-50, 87},
-        {-87, 50}, {-100, 0}, {-87, -50}, {-50, -87},
-    };
-    static const int8_t sway_curve[] = {
-        -3, -2, -1, 0, 1, 2, 3, 2, 1, 0, -1, -2,
-    };
-    static const uint8_t beam_lengths[] = {
-        32, 28, 31, 30, 33, 29, 32, 28, 33, 30, 32, 29,
-    };
-    unsigned int phase = (local_ms / 140u) % ARRAY_SIZE(sway_curve);
-
-    /* Twelve independent flame tips carry a slow wave around the stable core. */
-    for (unsigned int beam = 0; beam < ARRAY_SIZE(directions); ++beam) {
-        int sway = sway_curve[(phase + beam) % ARRAY_SIZE(sway_curve)];
-        int length = beam_lengths[beam];
-        weather_sun_beam(f, directions[beam].x, directions[beam].y,
-                         sway, length);
+    int wave_top = sun_sway(local_ms), wave_bottom = sun_sway(local_ms + 400u);
+    for (int y = 0; y < 64; ++y) {
+        for (int x = 0; x < 64; ++x) {
+            if (!sun_occupied(x, y, wave_top, wave_bottom)) continue;
+            int edge = !sun_occupied(x - 1, y, wave_top, wave_bottom) ||
+                       !sun_occupied(x + 1, y, wave_top, wave_bottom) ||
+                       !sun_occupied(x, y - 1, wave_top, wave_bottom) ||
+                       !sun_occupied(x, y + 1, wave_top, wave_bottom);
+            int rim = !sun_occupied(x - 3, y, wave_top, wave_bottom) ||
+                      !sun_occupied(x + 3, y, wave_top, wave_bottom) ||
+                      !sun_occupied(x, y - 3, wave_top, wave_bottom) ||
+                      !sun_occupied(x, y + 3, wave_top, wave_bottom);
+            uint8_t color = edge ? STRATA_BLACK : rim ? STRATA_RED : STRATA_YELLOW;
+            rect(f, x + 7, y + 18, 1, 1, color);
+        }
     }
-    /* Connected halo hides the beam seams and creates the reference's corona. */
-    disc(f, 38, 49, 21, STRATA_BLACK);
-    disc(f, 38, 49, 20, STRATA_RED);
-    disc(f, 38, 49, 19, STRATA_YELLOW);
-    /* A warm ring separates the large stable center from the brighter corona. */
+    /* The reference has a warm inner rim, with no black circle through the rays. */
     disc(f, 38, 49, 18, STRATA_RED);
-    disc(f, 38, 49, 16, STRATA_YELLOW);
+    disc(f, 37, 48, 16, STRATA_YELLOW);
+}
+
+static char cloud_cell(int x, int y)
+{
+    if (x < 0 || y < 0 || x >= 56 || y >= 42) return '.';
+    return sprite_cell(cloud_sprite, 24, x * 64 / 56, y * 48 / 42);
 }
 
 static void weather_cloud(uint8_t *f, uint32_t local_ms, int precipitation)
 {
-    static const struct point cloud_outline[] = {
-        {-30, 7}, {-29, 1}, {-26, -5}, {-21, -10}, {-15, -12},
-        {-10, -11}, {-8, -16}, {-3, -21}, {5, -22}, {11, -19},
-        {15, -14}, {16, -11}, {22, -11}, {27, -7}, {30, -1},
-        {30, 7}, {27, 12}, {21, 15}, {13, 15}, {8, 18},
-        {0, 19}, {-7, 17}, {-15, 17}, {-22, 14}, {-28, 13},
-    };
-    int step = (int)((local_ms / 220u) % 12u);
-    int drift = (step <= 6 ? step : 12 - step) - 3;
-    int bob = (int)((local_ms / 440u) & 1u);
-    int x = 38 + drift, y = (precipitation ? 47 : 52) + bob;
-
-    /* One continuous silhouette follows the rounded reference cloud. */
-    polygon(f, x, y, cloud_outline, ARRAY_SIZE(cloud_outline), STRATA_BLACK);
-    scaled_polygon(f, x, y, cloud_outline, ARRAY_SIZE(cloud_outline), 94, 100, STRATA_BLUE);
-    /* Shift the white body upward so blue remains as a thick lower/side shadow. */
-    scaled_polygon(f, x - 1, y - 3, cloud_outline, ARRAY_SIZE(cloud_outline),
-                   84, 100, STRATA_WHITE);
-    /* Overlapping lower masses model the reference cloud's dimensional folds. */
-    {
-        static const struct point soft_shadow[] = {
-            {-23, 0}, {-20, 5}, {-15, 7}, {-11, 10}, {-6, 8},
-            {-2, 11}, {4, 11}, {8, 8}, {13, 9}, {11, 13},
-            {5, 16}, {-3, 16}, {-11, 14}, {-18, 11}, {-23, 6},
-        };
-        static const struct point deep_shadow[] = {
-            {-24, 7}, {-18, 11}, {-11, 14}, {-3, 16}, {5, 15},
-            {11, 12}, {15, 13}, {10, 16}, {2, 18}, {-7, 17},
-            {-16, 15}, {-23, 11},
-        };
-        polygon(f, x, y, soft_shadow, ARRAY_SIZE(soft_shadow), STRATA_CYAN);
-        polygon(f, x, y, deep_shadow, ARRAY_SIZE(deep_shadow), STRATA_BLUE);
-        rect(f, x - 18, y + 5, 3, 2, STRATA_WHITE);
-        rect(f, x - 8, y + 9, 3, 2, STRATA_WHITE);
-        rect(f, x + 2, y + 10, 3, 2, STRATA_WHITE);
+    int drift = sun_sway(local_ms) / 24;
+    int origin_x = 10 + drift;
+    int origin_y = precipitation ? 24 : 28;
+    for (int y = -1; y <= 42; ++y) {
+        for (int x = -1; x <= 56; ++x) {
+            char cell = cloud_cell(x, y);
+            if (cell == '.') {
+                /* Ink surrounds the filled cells and preserves the hanging lobes. */
+                if (cloud_cell(x - 1, y) != '.' || cloud_cell(x + 1, y) != '.' ||
+                    cloud_cell(x, y - 1) != '.' || cloud_cell(x, y + 1) != '.')
+                    rect(f, origin_x + x, origin_y + y, 1, 1, STRATA_BLACK);
+                continue;
+            }
+            /* Anchor the pattern to the sprite so shading moves with the cloud. */
+            int ink = cell == 'S' ? ((x & 1) == 0 && (y & 1) == 0) :
+                      cell == 'M' ? ((x + y) & 1) == 0 : 0;
+            rect(f, origin_x + x, origin_y + y, 1, 1,
+                 ink ? STRATA_BLACK : STRATA_WHITE);
+        }
     }
-    rect(f, x - 19, y - 12, 7, 3, STRATA_WHITE);
-    rect(f, x - 3, y - 19, 8, 3, STRATA_WHITE);
-    rect(f, x + 14, y - 9, 5, 3, STRATA_WHITE);
-    /* Re-ink the contour after shading so every edge pixel remains continuous. */
-    for (size_t edge = 0; edge < ARRAY_SIZE(cloud_outline); ++edge) {
-        struct point a = cloud_outline[edge];
-        struct point b = cloud_outline[(edge + 1u) % ARRAY_SIZE(cloud_outline)];
-        line(f, x + a.x, y + a.y, x + b.x, y + b.y, STRATA_BLACK);
-    }
-
     if (precipitation) {
         for (int drop = 0; drop < 5; ++drop) {
-            int fall = (int)((local_ms / 70u + (uint32_t)drop * 5u) % 15u);
-            int dx = 18 + drop * 10, dy = 57 + fall;
-            uint8_t color = (drop & 1) ? STRATA_CYAN : STRATA_BLUE;
-            rect(f, dx, dy, 3, 5, color);
-            rect(f, dx - 2, dy + 4, 3, 3, color);
+            int fall = (int)((local_ms / 70u + (uint32_t)drop * 5u) % 10u);
+            int dx = 18 + drop * 10, dy = 68 + fall;
+            rect(f, dx, dy, 2, 3, (drop & 1) ? STRATA_CYAN : STRATA_BLUE);
         }
     }
 }

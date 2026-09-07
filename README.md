@@ -31,17 +31,23 @@ Every reel item lasts
 four seconds, with staggered change times for the top status, paired circle/map,
 and bottom openings (the first status and circle/map slots are shortened to
 establish the stagger). The circle and middle/world-map opening rotate together
-through classic, sunny, cloudy, rainy, and thunderstorm cards. Clouds are solid;
-the large round pixel sun keeps a stable layered core while twelve irregular
-black/red/yellow flame beams sway through an eased traveling wave. Clouds use
-one continuous rounded white body, a re-inked black contour, thick blue lower
-shadow, and an asymmetric cyan interior shadow so their volume remains visible.
+through classic, sunny, cloudy, rainy, and thunderstorm cards. The sun and cloud
+are hand-authored pixel sprites based on the supplied visual references. The
+sun's connected, curled rays sway gently around a fixed round center over a
+2.4-second cycle. The white cloud has overlapping lobes, a continuous black
+outline, and two densities of black/white stipple for its gray-looking shadows.
+Those patterns use real RGB111 pixels, not an extra gray panel color.
 Rain falls as alternating blue/cyan blocks. The storm card adds two quick
 yellow lightning flashes. Tiny three-bar condition meters complete the LCD-style
 weather cards. Weather uses Fahrenheit demo temperatures, humidity and UV
 readings, plus rain probability on rain/storm cards.
 All weather graphics and timing live in the shared C renderer. See
 [packaging/README.md](packaging/README.md) for removal and details.
+
+For a visual review with the native palette and faceplate clipping, run
+`python3 tests/preview_weather.py` after building the renderer (requires Pillow).
+It writes `build/weather-preview.png`, `build/weather-animation.gif`, and
+`build/weather-faceplate.png`. These previews come from the shared C output.
 
 ## Browser UX prototype
 

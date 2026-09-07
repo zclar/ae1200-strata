@@ -49,12 +49,14 @@ slots last a full four seconds. Reels can grow by adding a callback and one
 array entry without changing their phase.
 
 The circle and middle/world-map opening are owned by a single coordinated reel:
-classic clock/map, sunny, cloudy, rainy, thunderstorm. Dimensional pixel clouds
-drift as a continuous rounded white body with a black edge and blue lower/side
-shadow plus an asymmetric cyan interior shadow. Rain falls in alternating
-blue/cyan pixel blocks. The large round sun holds a stable layered core while
-twelve irregular black/red/yellow flame beams follow a staggered eased sway;
-storm lightning fires
+classic clock/map, sunny, cloudy, rainy, thunderstorm. The sun and cloud are
+hand-authored character-grid sprites in `strata_display.c`; their shape and
+shadow cells can be edited without changing the compositor. The sun uses an
+inverse-mapped two-pixel maximum tangential sway, eased over 2.4 seconds, with
+a stationary center. The cloud uses white lobes and two densities of native
+black/white pixels to suggest the reference's gray shadows. Its pattern moves
+with the sprite, avoiding stationary screen-space stipple during drift.
+Rain falls in alternating blue/cyan pixel blocks; storm lightning fires
 in two short yellow flashes. Three tiny
 bars reinforce each card's segmented-instrument character. A weather callback
 selects one demo sample and draws both its animated icon and its readings in the same frame, so
