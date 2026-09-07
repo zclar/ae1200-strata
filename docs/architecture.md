@@ -49,10 +49,13 @@ slots last a full four seconds. Reels can grow by adding a callback and one
 array entry without changing their phase.
 
 The circle and middle/world-map opening are owned by a single coordinated reel:
-classic clock/map, sunny, cloudy, rainy, thunderstorm. Solid black clouds drift;
-their silhouettes use deliberate rectangular steps instead of smooth curves.
-Rain falls in alternating blue/cyan pixel blocks, six thin sun rays rotate
-around a clean stepped disc, and storm lightning fires in two short yellow flashes. Three tiny
+classic clock/map, sunny, cloudy, rainy, thunderstorm. Dimensional pixel clouds
+drift as a continuous rounded white body with a black edge and blue lower/side
+shadow plus an asymmetric cyan interior shadow. Rain falls in alternating
+blue/cyan pixel blocks. The large round sun holds a stable layered core while
+twelve irregular black/red/yellow flame beams follow a staggered eased sway;
+storm lightning fires
+in two short yellow flashes. Three tiny
 bars reinforce each card's segmented-instrument character. A weather callback
 selects one demo sample and draws both its animated icon and its readings in the same frame, so
 conditions and values cannot advance independently. Temperatures are Fahrenheit;

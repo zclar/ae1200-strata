@@ -24,17 +24,19 @@ window. Its faceplate view includes the original-style printed legends, analog
 minute track, screws, and exact provisional aperture clipping. The upper status
 opening currently reels between the classic indicators and two wide,
 eleven-cell LCD battery gauges: one clean bar-only version and one with its
-outlined percentage floating over the visible cells. Bars light in discrete steps, with outlined
-empty cells. The main opening alternates between the
+percentage in a dedicated right-side column beside seven uninterrupted cells.
+Bars light in discrete steps, with outlined empty cells. The main opening alternates between the
 classic clock and fast, smooth-scrolling Messages and Gmail notification cards.
 Every reel item lasts
 four seconds, with staggered change times for the top status, paired circle/map,
 and bottom openings (the first status and circle/map slots are shortened to
 establish the stagger). The circle and middle/world-map opening rotate together
 through classic, sunny, cloudy, rainy, and thunderstorm cards. Clouds are solid;
-the pixel sun rotates six thin rays around a clean stepped disc, while
-clouds use three solid stepped puffs with visible valleys,
-and rain falls as alternating blue/cyan blocks. The storm card adds two quick
+the large round pixel sun keeps a stable layered core while twelve irregular
+black/red/yellow flame beams sway through an eased traveling wave. Clouds use
+one continuous rounded white body, a re-inked black contour, thick blue lower
+shadow, and an asymmetric cyan interior shadow so their volume remains visible.
+Rain falls as alternating blue/cyan blocks. The storm card adds two quick
 yellow lightning flashes. Tiny three-bar condition meters complete the LCD-style
 weather cards. Weather uses Fahrenheit demo temperatures, humidity and UV
 readings, plus rain probability on rain/storm cards.

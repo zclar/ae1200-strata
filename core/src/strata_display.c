@@ -203,6 +203,19 @@ static void polygon(uint8_t *f, int origin_x, int origin_y,
     }
 }
 
+static void scaled_polygon(uint8_t *f, int origin_x, int origin_y,
+                           const struct point *points, size_t count,
+                           int numerator, int denominator, uint8_t color)
+{
+    struct point scaled[32];
+    if (count > ARRAY_SIZE(scaled)) return;
+    for (size_t i = 0; i < count; ++i) {
+        scaled[i].x = points[i].x * numerator / denominator;
+        scaled[i].y = points[i].y * numerator / denominator;
+    }
+    polygon(f, origin_x, origin_y, scaled, count, color);
+}
+
 static void bluetooth(uint8_t *f, int x, int y, uint8_t color)
 {
     rect(f, x + 3, y, 2, 14, color); rect(f, x + 5, y + 2, 3, 2, color);
@@ -223,9 +236,10 @@ static void classic_status(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
 
 static void draw_battery_status(uint8_t *f, uint32_t local_ms, int show_percentage)
 {
-    const int x = 99, y = 11, width = 68, height = 16;
+    const int x = 99, y = 11;
+    const int width = show_percentage ? 45 : 68, height = 16;
     unsigned int level = 25u + (local_ms * 70u) / (REEL_ITEM_DURATION_MS - 1u);
-    const unsigned int bar_count = 11u;
+    const unsigned int bar_count = show_percentage ? 7u : 11u;
     unsigned int lit_bars = (level * bar_count + 50u) / 100u;
     char percentage[] = {'0', '0', '%', '\0'};
 
@@ -251,12 +265,8 @@ static void draw_battery_status(uint8_t *f, uint32_t local_ms, int show_percenta
     if (show_percentage) {
         percentage[0] = (char)('0' + level / 10u);
         percentage[1] = (char)('0' + level % 10u);
-        /* A one-pixel halo separates the glyphs without concealing the bars. */
-        label(f, percentage, 123, 15, 1, STRATA_WHITE);
-        label(f, percentage, 125, 15, 1, STRATA_WHITE);
-        label(f, percentage, 124, 14, 1, STRATA_WHITE);
-        label(f, percentage, 124, 16, 1, STRATA_WHITE);
-        label(f, percentage, 124, 15, 1, STRATA_BLACK);
+        /* The shorter gauge reserves a clean right-side column for the value. */
+        label(f, percentage, 151, 15, 1, STRATA_BLACK);
     }
 }
 
@@ -396,67 +406,120 @@ static const struct weather_sample weather_samples[] = {
     {"64", "92%", "0", "RAIN 95%"},
 };
 
+static struct point radial_point(int dx, int dy, int radius, int tangent)
+{
+    struct point result;
+    result.x = (dx * radius - dy * tangent) / 100;
+    result.y = (dy * radius + dx * tangent) / 100;
+    return result;
+}
+
+static void weather_sun_beam(uint8_t *f, int dx, int dy, int sway, int length)
+{
+    struct point outer[] = {
+        radial_point(dx, dy, 14, 5), radial_point(dx, dy, 21, 5),
+        radial_point(dx, dy, length, sway + 2),
+        radial_point(dx, dy, length, sway - 2),
+        radial_point(dx, dy, 21, -5),
+        radial_point(dx, dy, 14, -5),
+    };
+    struct point warm[] = {
+        radial_point(dx, dy, 15, 3), radial_point(dx, dy, 21, 3),
+        radial_point(dx, dy, length - 2, sway + 1),
+        radial_point(dx, dy, length - 2, sway - 1),
+        radial_point(dx, dy, 21, -3),
+        radial_point(dx, dy, 15, -3),
+    };
+    struct point light[] = {
+        radial_point(dx, dy, 17, 1), radial_point(dx, dy, 21, 2),
+        radial_point(dx, dy, length - 5, sway + 1),
+        radial_point(dx, dy, length - 5, sway - 1),
+        radial_point(dx, dy, 21, -2),
+        radial_point(dx, dy, 17, -1),
+    };
+    polygon(f, 38, 49, outer, ARRAY_SIZE(outer), STRATA_BLACK);
+    polygon(f, 38, 49, warm, ARRAY_SIZE(warm), STRATA_RED);
+    polygon(f, 38, 49, light, ARRAY_SIZE(light), STRATA_YELLOW);
+}
+
 static void weather_sun(uint8_t *f, uint32_t local_ms)
 {
     static const struct point directions[] = {
-        {0, -100}, {38, -92}, {71, -71}, {92, -38},
-        {100, 0}, {92, 38}, {71, 71}, {38, 92},
-        {0, 100}, {-38, 92}, {-71, 71}, {-92, 38},
-        {-100, 0}, {-92, -38}, {-71, -71}, {-38, -92},
+        {0, -100}, {50, -87}, {87, -50}, {100, 0},
+        {87, 50}, {50, 87}, {0, 100}, {-50, 87},
+        {-87, 50}, {-100, 0}, {-87, -50}, {-50, -87},
     };
-    static const struct point outer[] = {
-        {-8, -13}, {8, -13}, {13, -8}, {13, 8},
-        {8, 13}, {-8, 13}, {-13, 8}, {-13, -8},
+    static const int8_t sway_curve[] = {
+        -3, -2, -1, 0, 1, 2, 3, 2, 1, 0, -1, -2,
     };
-    static const struct point inner[] = {
-        {-6, -11}, {6, -11}, {11, -6}, {11, 6},
-        {6, 11}, {-6, 11}, {-11, 6}, {-11, -6},
+    static const uint8_t beam_lengths[] = {
+        32, 28, 31, 30, 33, 29, 32, 28, 33, 30, 32, 29,
     };
-    unsigned int phase = (local_ms / 100u) % ARRAY_SIZE(directions);
+    unsigned int phase = (local_ms / 140u) % ARRAY_SIZE(sway_curve);
 
-    /* Six thin rays rotate one sixteenth-turn per frame around a clean disc. */
-    for (unsigned int ray = 0; ray < 6u; ++ray) {
-        unsigned int direction = ray * (unsigned int)ARRAY_SIZE(directions) / 6u;
-        struct point d = directions[(direction + phase) % ARRAY_SIZE(directions)];
-        int x0 = 38 + d.x * 19 / 100;
-        int y0 = 49 + d.y * 19 / 100;
-        int x1 = 38 + d.x * 26 / 100;
-        int y1 = 49 + d.y * 26 / 100;
-        line(f, x0, y0, x1, y1, STRATA_YELLOW);
-        line(f, x0 + (d.y >= 0 ? 1 : -1), y0 + (d.x < 0 ? 1 : -1),
-             x1 + (d.y >= 0 ? 1 : -1), y1 + (d.x < 0 ? 1 : -1),
-             STRATA_YELLOW);
+    /* Twelve independent flame tips carry a slow wave around the stable core. */
+    for (unsigned int beam = 0; beam < ARRAY_SIZE(directions); ++beam) {
+        int sway = sway_curve[(phase + beam) % ARRAY_SIZE(sway_curve)];
+        int length = beam_lengths[beam];
+        weather_sun_beam(f, directions[beam].x, directions[beam].y,
+                         sway, length);
     }
-
-    polygon(f, 38, 49, outer, ARRAY_SIZE(outer), STRATA_BLACK);
-    polygon(f, 38, 49, inner, ARRAY_SIZE(inner), STRATA_YELLOW);
+    /* Connected halo hides the beam seams and creates the reference's corona. */
+    disc(f, 38, 49, 21, STRATA_BLACK);
+    disc(f, 38, 49, 20, STRATA_RED);
+    disc(f, 38, 49, 19, STRATA_YELLOW);
+    /* A warm ring separates the large stable center from the brighter corona. */
+    disc(f, 38, 49, 18, STRATA_RED);
+    disc(f, 38, 49, 16, STRATA_YELLOW);
 }
 
 static void weather_cloud(uint8_t *f, uint32_t local_ms, int precipitation)
 {
-    static const struct point left_puff[] = {
-        {-9, 2}, {-8, -3}, {-5, -7}, {0, -9}, {5, -7},
-        {8, -3}, {9, 2}, {9, 8}, {-9, 8},
-    };
-    static const struct point center_puff[] = {
-        {-12, 2}, {-11, -4}, {-8, -9}, {-4, -12}, {5, -12},
-        {9, -9}, {12, -4}, {12, 3}, {12, 10}, {-12, 10},
-    };
-    static const struct point right_puff[] = {
-        {-8, 1}, {-7, -3}, {-4, -7}, {1, -8}, {5, -6},
-        {8, -2}, {8, 3}, {8, 8}, {-8, 8},
+    static const struct point cloud_outline[] = {
+        {-30, 7}, {-29, 1}, {-26, -5}, {-21, -10}, {-15, -12},
+        {-10, -11}, {-8, -16}, {-3, -21}, {5, -22}, {11, -19},
+        {15, -14}, {16, -11}, {22, -11}, {27, -7}, {30, -1},
+        {30, 7}, {27, 12}, {21, 15}, {13, 15}, {8, 18},
+        {0, 19}, {-7, 17}, {-15, 17}, {-22, 14}, {-28, 13},
     };
     int step = (int)((local_ms / 220u) % 12u);
     int drift = (step <= 6 ? step : 12 - step) - 3;
     int bob = (int)((local_ms / 440u) & 1u);
-    int x = 13 + drift, y = (precipitation ? 31 : 38) + bob;
+    int x = 38 + drift, y = (precipitation ? 47 : 52) + bob;
 
-    /* Three stepped octagons create rounded pixel puffs with visible valleys. */
-    polygon(f, x + 14, y + 14, left_puff, ARRAY_SIZE(left_puff), STRATA_BLACK);
-    polygon(f, x + 31, y + 13, center_puff, ARRAY_SIZE(center_puff), STRATA_BLACK);
-    polygon(f, x + 48, y + 15, right_puff, ARRAY_SIZE(right_puff), STRATA_BLACK);
-    rect(f, x + 3, y + 17, 53, 6, STRATA_BLACK);
-    rect(f, x + 1, y + 19, 57, 2, STRATA_BLACK);
+    /* One continuous silhouette follows the rounded reference cloud. */
+    polygon(f, x, y, cloud_outline, ARRAY_SIZE(cloud_outline), STRATA_BLACK);
+    scaled_polygon(f, x, y, cloud_outline, ARRAY_SIZE(cloud_outline), 94, 100, STRATA_BLUE);
+    /* Shift the white body upward so blue remains as a thick lower/side shadow. */
+    scaled_polygon(f, x - 1, y - 3, cloud_outline, ARRAY_SIZE(cloud_outline),
+                   84, 100, STRATA_WHITE);
+    /* Overlapping lower masses model the reference cloud's dimensional folds. */
+    {
+        static const struct point soft_shadow[] = {
+            {-23, 0}, {-20, 5}, {-15, 7}, {-11, 10}, {-6, 8},
+            {-2, 11}, {4, 11}, {8, 8}, {13, 9}, {11, 13},
+            {5, 16}, {-3, 16}, {-11, 14}, {-18, 11}, {-23, 6},
+        };
+        static const struct point deep_shadow[] = {
+            {-24, 7}, {-18, 11}, {-11, 14}, {-3, 16}, {5, 15},
+            {11, 12}, {15, 13}, {10, 16}, {2, 18}, {-7, 17},
+            {-16, 15}, {-23, 11},
+        };
+        polygon(f, x, y, soft_shadow, ARRAY_SIZE(soft_shadow), STRATA_CYAN);
+        polygon(f, x, y, deep_shadow, ARRAY_SIZE(deep_shadow), STRATA_BLUE);
+        rect(f, x - 18, y + 5, 3, 2, STRATA_WHITE);
+        rect(f, x - 8, y + 9, 3, 2, STRATA_WHITE);
+        rect(f, x + 2, y + 10, 3, 2, STRATA_WHITE);
+    }
+    rect(f, x - 19, y - 12, 7, 3, STRATA_WHITE);
+    rect(f, x - 3, y - 19, 8, 3, STRATA_WHITE);
+    rect(f, x + 14, y - 9, 5, 3, STRATA_WHITE);
+    /* Re-ink the contour after shading so every edge pixel remains continuous. */
+    for (size_t edge = 0; edge < ARRAY_SIZE(cloud_outline); ++edge) {
+        struct point a = cloud_outline[edge];
+        struct point b = cloud_outline[(edge + 1u) % ARRAY_SIZE(cloud_outline)];
+        line(f, x + a.x, y + a.y, x + b.x, y + b.y, STRATA_BLACK);
+    }
 
     if (precipitation) {
         for (int drop = 0; drop < 5; ++drop) {
