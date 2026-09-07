@@ -501,6 +501,10 @@ static void weather_sun(uint8_t *f, uint32_t local_ms)
             char cell = sprite_cell(sun_sprite, 32, sx, sy);
             if (cell == '.') continue;
             int radius = (sx - 31) * (sx - 31) + (sy - 31) * (sy - 31);
+            int moving_ray = radius > 1100;
+            /* The authored sprite is made of 2x2 display-pixel cells. Never
+             * split one while animating; doing so produces the old glitch. */
+            if (moving_ray && ((sx & 1) || (sy & 1))) continue;
             int edge = sprite_cell(sun_sprite, 32, sx - 1, sy) == '.' ||
                        sprite_cell(sun_sprite, 32, sx + 1, sy) == '.' ||
                        sprite_cell(sun_sprite, 32, sx, sy - 1) == '.' ||
@@ -538,7 +542,7 @@ static void weather_sun(uint8_t *f, uint32_t local_ms)
                 color = STRATA_YELLOW;
             int draw_x = 7 + sx;
             int draw_y = 18 + sy;
-            if (!edge && radius > 900) {
+            if (!edge && moving_ray) {
                 /* Only the ray tips flex; the body never swims. */
                 int dx = sx - 31;
                 int dy = sy - 31;
@@ -554,7 +558,7 @@ static void weather_sun(uint8_t *f, uint32_t local_ms)
                     draw_y += sway;
                 }
             }
-            rect(f, draw_x, draw_y, 1, 1, color);
+            rect(f, draw_x, draw_y, moving_ray ? 2 : 1, moving_ray ? 2 : 1, color);
         }
     }
 }
