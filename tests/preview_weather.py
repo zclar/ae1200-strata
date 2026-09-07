@@ -44,6 +44,9 @@ if __name__ == "__main__":
         frames.append(pair)
     frames[0].save(ROOT / "build/weather-animation.gif", save_all=True,
                    append_images=frames[1:], duration=100, loop=0, disposal=2)
+    sun_frames = [circle(2000 + elapsed) for elapsed in range(0, 2400, 50)]
+    sun_frames[0].save(ROOT / "build/sun-sway.gif", save_all=True,
+                       append_images=sun_frames[1:], duration=50, loop=0, disposal=2)
     render(6500).resize((704, 704), Image.Resampling.NEAREST).save(
         ROOT / "build/weather-faceplate.png")
     print("Wrote build/weather-preview.png, weather-animation.gif, weather-faceplate.png")

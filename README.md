@@ -31,10 +31,11 @@ Every reel item lasts
 four seconds, with staggered change times for the top status, paired circle/map,
 and bottom openings (the first status and circle/map slots are shortened to
 establish the stagger). The circle and middle/world-map opening rotate together
-through classic, sunny, cloudy, rainy, and thunderstorm cards. The sun and cloud
-are hand-authored pixel sprites based on the supplied visual references. The
-sun is a large irregular yellow flame sprite with a red inner ring, black pixel
-contour, and a restrained two-frame outer-lobe sway. The colored cloud has
+through classic, sunny, cloudy, rainy, and thunderstorm cards. The sun uses a
+simple round yellow disk with a thin red rim and eight solid, tapered rays.
+The rays bend tangentially through a 2.4-second eased loop, anchored at the disk,
+with up to four display pixels of tip movement in each direction. A continuous
+black outline follows their silhouettes. The reference-based colored cloud has
 overlapping lobes, a continuous black outline, and cyan/blue shadow stipple that
 remains visible on the reflective panel.
 Rain falls as alternating blue/cyan blocks. The storm card adds two quick

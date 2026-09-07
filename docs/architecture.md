@@ -49,11 +49,14 @@ slots last a full four seconds. Reels can grow by adding a callback and one
 array entry without changing their phase.
 
 The circle and middle/world-map opening are owned by a single coordinated reel:
-classic clock/map, sunny, cloudy, rainy, thunderstorm. The sun and cloud are
-hand-authored character-grid sprites in `strata_display.c`; their shape and
-shadow cells can be edited without changing the compositor. The sunny card uses
-a large irregular yellow flame sprite with a red inner ring and two-frame outer
-lobe sway. The cloud uses white lobes and colored cyan/blue stipple shadows that
+classic clock/map, sunny, cloudy, rainy, thunderstorm. The sunny card draws eight
+connected tapered ray polygons around a fixed yellow disk with a thin red rim.
+Fixed-point cross-sections bend progressively from anchored roots to tips;
+the 2.4-second eased waveform moves tips up to four panel pixels each way.
+The completed silhouette is outlined once, avoiding holes or mismatched edges
+from displacing individual sprite pixels. No floating point, heap allocation,
+or frame buffer beyond the shared display frame is needed. The cloud remains a
+hand-authored character-grid sprite with white lobes and cyan/blue stipple shadows that
 move with the sprite. Rain falls in alternating blue/cyan
 pixel blocks; storm lightning fires
 in two short yellow flashes. Three tiny

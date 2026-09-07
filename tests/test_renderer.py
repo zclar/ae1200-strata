@@ -115,6 +115,28 @@ for ms in (2100, 6100, 10100, 14100):
     assert region(initial, *middle_box) == region(later, *middle_box), "weather readings drifted"
     assert max(initial) <= 7
 detail_box = (101, 73, 48, 7)
+# Sway must change the actual silhouette, keep the disk still, and never
+# detach a ray. A mere color flicker passed the older "not static" check.
+sun_reference = render_at(2000)
+silhouettes = set()
+for elapsed in range(0, 2400, 50):
+    sun = render_at(2000 + elapsed)
+    assert region(sun, 26, 37, 25, 25) == region(sun_reference, 26, 37, 25, 25)
+    occupied = {(x, y) for y in range(18, 81) for x in range(7, 70)
+                if sun[y * 176 + x] != 7}
+    silhouettes.add(frozenset(occupied))
+    pending = [(38, 49)]
+    reached = set(pending)
+    while pending:
+        x, y = pending.pop()
+        for neighbor in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if neighbor in occupied and neighbor not in reached:
+                reached.add(neighbor)
+                pending.append(neighbor)
+    assert reached == occupied, "sun ray or outline detached during sway"
+assert len(silhouettes) >= 12, "sun silhouette needs visible intermediate sway poses"
+assert region(sun_reference, *circle_box) == region(render_at(4400), *circle_box), \
+    "sun sway must loop seamlessly"
 assert 1 in region(render_at(10000), *detail_box), "rain probability must be blue"
 assert 1 not in region(render_at(6000), *detail_box), "cloudy label should not imply rain"
 assert region(render_at(2000), *middle_box) == region(render_at(22000), *middle_box)
