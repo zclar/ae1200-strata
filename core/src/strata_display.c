@@ -221,15 +221,13 @@ static void classic_status(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
     bluetooth(f, 161, 11, STRATA_BLUE);
 }
 
-static void battery_status(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+static void draw_battery_status(uint8_t *f, uint32_t local_ms, int show_percentage)
 {
     const int x = 99, y = 11, width = 68, height = 16;
     unsigned int level = 25u + (local_ms * 70u) / (REEL_ITEM_DURATION_MS - 1u);
-    const unsigned int bar_count = 8u;
+    const unsigned int bar_count = 11u;
     unsigned int lit_bars = (level * bar_count + 50u) / 100u;
     char percentage[] = {'0', '0', '%', '\0'};
-
-    (void)elapsed_ms;
 
     /* Beveled body and terminal preserve the recognizable battery silhouette. */
     line(f, x + 2, y, x + width - 3, y, STRATA_BLACK);
@@ -241,25 +239,46 @@ static void battery_status(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
     rect(f, x + 1, y + height - 2, 1, 1, STRATA_BLACK);
     rect(f, x + width - 2, y + height - 2, 1, 1, STRATA_BLACK);
     rect(f, x + width, y + 5, 4, height - 10, STRATA_BLACK);
-    /* Chunky LCD cells light in whole steps; empty cells retain their outline. */
+    /* Eleven cells span the cavity while retaining breathing room at both ends. */
     for (unsigned int bar = 0; bar < bar_count; ++bar) {
-        int bar_x = x + 3 + (int)bar * 5;
+        int bar_x = x + 5 + (int)bar * 5;
         rect(f, bar_x, y + 3, 4, height - 6,
              bar < lit_bars ? STRATA_GREEN : STRATA_BLACK);
         if (bar >= lit_bars)
             rect(f, bar_x + 1, y + 4, 2, height - 8, STRATA_WHITE);
     }
 
-    percentage[0] = (char)('0' + level / 10u);
-    percentage[1] = (char)('0' + level % 10u);
-    label(f, percentage, 144, 15, 1, STRATA_BLACK);
+    if (show_percentage) {
+        percentage[0] = (char)('0' + level / 10u);
+        percentage[1] = (char)('0' + level % 10u);
+        /* A one-pixel halo separates the glyphs without concealing the bars. */
+        label(f, percentage, 123, 15, 1, STRATA_WHITE);
+        label(f, percentage, 125, 15, 1, STRATA_WHITE);
+        label(f, percentage, 124, 14, 1, STRATA_WHITE);
+        label(f, percentage, 124, 16, 1, STRATA_WHITE);
+        label(f, percentage, 124, 15, 1, STRATA_BLACK);
+    }
+}
+
+static void battery_bars_status(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{
+    (void)elapsed_ms;
+    draw_battery_status(f, local_ms, 0);
+}
+
+static void battery_percentage_status(uint8_t *f, uint32_t local_ms,
+                                      uint32_t elapsed_ms)
+{
+    (void)elapsed_ms;
+    draw_battery_status(f, local_ms, 1);
 }
 
 static void status_reel(uint8_t *f, uint32_t elapsed_ms)
 {
     static const struct reel_item items[] = {
         {classic_status},
-        {battery_status},
+        {battery_bars_status},
+        {battery_percentage_status},
     };
     render_reel(f, elapsed_ms, items, ARRAY_SIZE(items), 3000u);
 }
@@ -379,6 +398,12 @@ static const struct weather_sample weather_samples[] = {
 
 static void weather_sun(uint8_t *f, uint32_t local_ms)
 {
+    static const struct point directions[] = {
+        {0, -100}, {38, -92}, {71, -71}, {92, -38},
+        {100, 0}, {92, 38}, {71, 71}, {38, 92},
+        {0, 100}, {-38, 92}, {-71, 71}, {-92, 38},
+        {-100, 0}, {-92, -38}, {-71, -71}, {-38, -92},
+    };
     static const struct point outer[] = {
         {-8, -13}, {8, -13}, {13, -8}, {13, 8},
         {8, 13}, {-8, 13}, {-13, 8}, {-13, -8},
@@ -387,44 +412,51 @@ static void weather_sun(uint8_t *f, uint32_t local_ms)
         {-6, -11}, {6, -11}, {11, -6}, {11, 6},
         {6, 11}, {-6, 11}, {-11, 6}, {-11, -6},
     };
-    int pulse = (int)((local_ms / 250u) & 1u);
+    unsigned int phase = (local_ms / 100u) % ARRAY_SIZE(directions);
 
-    /* Eight chunky rays alternate by one pixel like a two-frame LCD sprite. */
-    rect(f, 36, 18 - pulse, 4, 9, STRATA_YELLOW);
-    rect(f, 36, 71 + pulse, 4, 9, STRATA_YELLOW);
-    rect(f, 7 - pulse, 47, 9, 4, STRATA_YELLOW);
-    rect(f, 60 + pulse, 47, 9, 4, STRATA_YELLOW);
-    rect(f, 16 - pulse, 27 - pulse, 6, 4, STRATA_YELLOW);
-    rect(f, 54 + pulse, 27 - pulse, 6, 4, STRATA_YELLOW);
-    rect(f, 16 - pulse, 67 + pulse, 6, 4, STRATA_YELLOW);
-    rect(f, 54 + pulse, 67 + pulse, 6, 4, STRATA_YELLOW);
+    /* Six thin rays rotate one sixteenth-turn per frame around a clean disc. */
+    for (unsigned int ray = 0; ray < 6u; ++ray) {
+        unsigned int direction = ray * (unsigned int)ARRAY_SIZE(directions) / 6u;
+        struct point d = directions[(direction + phase) % ARRAY_SIZE(directions)];
+        int x0 = 38 + d.x * 19 / 100;
+        int y0 = 49 + d.y * 19 / 100;
+        int x1 = 38 + d.x * 26 / 100;
+        int y1 = 49 + d.y * 26 / 100;
+        line(f, x0, y0, x1, y1, STRATA_YELLOW);
+        line(f, x0 + (d.y >= 0 ? 1 : -1), y0 + (d.x < 0 ? 1 : -1),
+             x1 + (d.y >= 0 ? 1 : -1), y1 + (d.x < 0 ? 1 : -1),
+             STRATA_YELLOW);
+    }
 
     polygon(f, 38, 49, outer, ARRAY_SIZE(outer), STRATA_BLACK);
     polygon(f, 38, 49, inner, ARRAY_SIZE(inner), STRATA_YELLOW);
-    /* A tiny face gives the sunny card a playful, intentional pixel-art look. */
-    rect(f, 32, 45, 3, 3, STRATA_BLACK);
-    rect(f, 42, 45, 3, 3, STRATA_BLACK);
-    rect(f, 34, 55, 9, 2, STRATA_BLACK);
-    rect(f, 32, 53, 2, 2, STRATA_BLACK);
-    rect(f, 43, 53, 2, 2, STRATA_BLACK);
 }
 
 static void weather_cloud(uint8_t *f, uint32_t local_ms, int precipitation)
 {
+    static const struct point left_puff[] = {
+        {-9, 2}, {-8, -3}, {-5, -7}, {0, -9}, {5, -7},
+        {8, -3}, {9, 2}, {9, 8}, {-9, 8},
+    };
+    static const struct point center_puff[] = {
+        {-12, 2}, {-11, -4}, {-8, -9}, {-4, -12}, {5, -12},
+        {9, -9}, {12, -4}, {12, 3}, {12, 10}, {-12, 10},
+    };
+    static const struct point right_puff[] = {
+        {-8, 1}, {-7, -3}, {-4, -7}, {1, -8}, {5, -6},
+        {8, -2}, {8, 3}, {8, 8}, {-8, 8},
+    };
     int step = (int)((local_ms / 220u) % 12u);
     int drift = (step <= 6 ? step : 12 - step) - 3;
-    int bob = (int)((local_ms / 500u) & 1u);
+    int bob = (int)((local_ms / 440u) & 1u);
     int x = 13 + drift, y = (precipitation ? 31 : 38) + bob;
 
-    /* A solid, stepped silhouette reads cleanly at the panel's real pixel pitch. */
-    rect(f, x + 5, y + 10, 43, 13, STRATA_BLACK);
-    rect(f, x + 9, y + 6, 35, 17, STRATA_BLACK);
-    rect(f, x + 16, y + 2, 20, 21, STRATA_BLACK);
-    rect(f, x + 21, y, 11, 23, STRATA_BLACK);
-    rect(f, x + 2, y + 14, 49, 5, STRATA_BLACK);
-    /* Pixel steps soften the corners without turning them into smooth curves. */
-    rect(f, x + 3, y + 12, 3, 9, STRATA_BLACK);
-    rect(f, x + 47, y + 12, 3, 9, STRATA_BLACK);
+    /* Three stepped octagons create rounded pixel puffs with visible valleys. */
+    polygon(f, x + 14, y + 14, left_puff, ARRAY_SIZE(left_puff), STRATA_BLACK);
+    polygon(f, x + 31, y + 13, center_puff, ARRAY_SIZE(center_puff), STRATA_BLACK);
+    polygon(f, x + 48, y + 15, right_puff, ARRAY_SIZE(right_puff), STRATA_BLACK);
+    rect(f, x + 3, y + 17, 53, 6, STRATA_BLACK);
+    rect(f, x + 1, y + 19, 57, 2, STRATA_BLACK);
 
     if (precipitation) {
         for (int drop = 0; drop < 5; ++drop) {

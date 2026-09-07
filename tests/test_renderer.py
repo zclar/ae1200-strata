@@ -34,7 +34,11 @@ assert bytes(animated) != bytes(first), "classic scene did not advance with elap
 battery = frame_type()
 lib.strata_render(battery, 0, 2000)
 assert 2 in battery, "battery reel item is missing its RGB111 green level fill"
-assert bytes(battery) != bytes(animated), "upper status reel did not advance"
+classic_status_frame = frame_type()
+lib.strata_render(classic_status_frame, 0, 999)
+assert any(battery[y * 176 + x] != classic_status_frame[y * 176 + x]
+           for y in range(7, 29) for x in range(95, 176)), \
+    "upper status reel did not advance"
 
 notification = frame_type()
 lib.strata_render(notification, 0, 6000)
@@ -80,11 +84,15 @@ middle_box = (98, 39, 74, 42)
 main_box = (0, 95, 176, 70)
 
 # Phase offsets stagger slot changes: status at 1s, paired weather at 2s,
-# main at 4s, then repeat each group's transitions every four seconds.
+# main at 4s, then each group changes items every four seconds.
 assert 2 not in region(render_at(999), *status_box)
 assert 2 in region(render_at(1000), *status_box)
 assert 2 in region(render_at(4999), *status_box)
-assert 2 not in region(render_at(5000), *status_box)
+assert 2 in region(render_at(5000), *status_box)
+assert 2 in region(render_at(8999), *status_box)
+assert 2 not in region(render_at(9000), *status_box)
+assert region(render_at(1000), *status_box) != region(render_at(5000), *status_box), \
+    "plain and percentage battery items must remain distinct"
 assert 6 not in region(render_at(1999), *circle_box)
 assert 6 in region(render_at(2000), *circle_box)
 assert 6 in region(render_at(5999), *circle_box)
