@@ -724,12 +724,79 @@ static void main_gmail(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
     label(f, message, scroll_x, 146, 2, STRATA_BLACK);
 }
 
+static void main_music(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{
+    (void)elapsed_ms;
+    /* Simulated playback UI only: this demo does not decode or output audio. */
+    static const char title[] = "NIGHT DRIVE";
+    const int title_period = (int)(sizeof(title) - 1u) * 12 + 48;
+    int offset = (int)(local_ms * 40u / 1000u) % title_period;
+    label(f, "NOW PLAYING", 102, 99, 1, STRATA_BLACK);
+    line(f, 82, 115, 168, 115, STRATA_BLACK);
+    label(f, title, 8 - offset, 120, 2, STRATA_BLACK);
+    label(f, title, 8 - offset + title_period, 120, 2, STRATA_BLACK);
+    /* Clip the looping title to its own row and viewport. */
+    rect(f, 0, 120, 8, 14, STRATA_WHITE);
+    rect(f, 168, 120, 8, 14, STRATA_WHITE);
+
+    /* Pixel-sized Spotify mark: green disk and three curved black bands. */
+    disc(f, 50, 141, 6, STRATA_GREEN);
+    line(f, 46, 139, 48, 138, STRATA_BLACK);
+    line(f, 48, 138, 52, 138, STRATA_BLACK);
+    line(f, 52, 138, 54, 139, STRATA_BLACK);
+    line(f, 47, 142, 49, 141, STRATA_BLACK);
+    line(f, 49, 141, 52, 141, STRATA_BLACK);
+    rect(f, 53, 142, 1, 1, STRATA_BLACK);
+    line(f, 48, 145, 49, 144, STRATA_BLACK);
+    line(f, 49, 144, 51, 144, STRATA_BLACK);
+    rect(f, 52, 145, 1, 1, STRATA_BLACK);
+    label(f, "SPOTIFY", 62, 138, 1, STRATA_GREEN);
+    uint32_t seconds = 84u + local_ms / 1000u;
+    char position[] = "1:24";
+    position[2] = (char)('0' + seconds % 60u / 10u);
+    position[3] = (char)('0' + seconds % 10u);
+    label(f, position, 141, 138, 1, STRATA_BLACK);
+
+    /* Five independently phased, blocky level meters. Deterministic motion
+     * is shared with the MCU; these are demo levels, not an audio analysis. */
+    static const uint8_t levels[] = {2, 3, 5, 6, 5, 3, 2, 1, 2, 4, 5, 4};
+    for (unsigned int bar = 0; bar < 5u; ++bar) {
+        unsigned int phase = (local_ms / 100u + bar * 3u) % ARRAY_SIZE(levels);
+        for (unsigned int block = 0; block < levels[phase]; ++block)
+            rect(f, 8 + (int)bar * 6, 158 - (int)block * 3, 4, 2,
+                 block >= 4u ? STRATA_CYAN : STRATA_BLUE);
+    }
+    /* Pause glyph communicates that the track is currently playing. */
+    rect(f, 44, 151, 3, 8, STRATA_BLACK);
+    rect(f, 50, 151, 3, 8, STRATA_BLACK);
+    const int progress_x = 64, progress_width = 101;
+    int played = (int)((84000u + local_ms) * (uint32_t)progress_width / 223000u);
+    line(f, progress_x + played, 155, progress_x + progress_width, 155, STRATA_BLACK);
+    /* Static wave only in the already-played portion. Taper both ends
+     * to meet the baseline and playhead without a vertical jump. */
+    static const int8_t wave[] = {0, 1, 2, 3, 3, 3, 2, 1, 0, -1, -2, -3, -3, -3, -2, -1};
+    int previous_y = 155;
+    for (int x = 0; x <= played; ++x) {
+        int taper = x < played - x ? x : played - x;
+        if (taper > 3) taper = 3;
+        unsigned int phase = (unsigned int)x % ARRAY_SIZE(wave);
+        int y = 155 + wave[phase] * taper / 3;
+        if (x > 0) {
+            line(f, progress_x + x - 1, previous_y, progress_x + x, y, STRATA_BLUE);
+            line(f, progress_x + x - 1, previous_y + 1, progress_x + x, y + 1, STRATA_BLUE);
+        }
+        previous_y = y;
+    }
+    rect(f, progress_x + played - 1, 153, 3, 5, STRATA_BLUE);
+}
+
 static void main_reel(uint8_t *f, uint32_t elapsed_ms)
 {
     static const struct reel_item items[] = {
         {main_time_item},
         {main_notification},
         {main_gmail},
+        {main_music},
     };
     render_reel(f, elapsed_ms, items, ARRAY_SIZE(items), 0u);
 }

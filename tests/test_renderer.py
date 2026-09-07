@@ -56,18 +56,24 @@ assert bytes(gmail) != bytes(notification), "Gmail reel did not advance"
 before_messages, start_messages = frame_type(), frame_type()
 before_gmail, start_gmail = frame_type(), frame_type()
 before_repeat, repeat = frame_type(), frame_type()
+before_music, music = frame_type(), frame_type()
 lib.strata_render(before_messages, 0, 3999)
 lib.strata_render(start_messages, 0, 4000)
 lib.strata_render(before_gmail, 0, 7999)
 lib.strata_render(start_gmail, 0, 8000)
-lib.strata_render(before_repeat, 0, 11999)
-lib.strata_render(repeat, 0, 12000)
+lib.strata_render(before_music, 0, 11999)
+lib.strata_render(music, 0, 12000)
+lib.strata_render(before_repeat, 0, 15999)
+lib.strata_render(repeat, 0, 16000)
 assert before_messages[122 * 176 + 10] != 1
 assert start_messages[122 * 176 + 10] == 1
 assert before_gmail[123 * 176 + 8] != 4
 assert start_gmail[123 * 176 + 8] == 4
-assert before_repeat[123 * 176 + 8] == 4
-assert repeat[123 * 176 + 8] != 4
+assert before_music[123 * 176 + 8] == 4
+assert music[123 * 176 + 8] != 4
+assert music[158 * 176 + 8] == 1
+assert before_repeat[158 * 176 + 8] == 1
+assert repeat[158 * 176 + 8] != 1
 
 def render_at(ms):
     frame = frame_type()
@@ -82,6 +88,15 @@ status_box = (95, 7, 81, 22)
 circle_box = (3, 15, 70, 68)
 middle_box = (98, 39, 74, 42)
 main_box = (0, 95, 176, 70)
+
+# Music advances within its four-second slot without touching the other reels.
+assert region(render_at(12000), 8, 120, 160, 14) == region(render_at(12024), 8, 120, 160, 14)
+assert region(render_at(12000), 8, 120, 160, 14) != region(render_at(12025), 8, 120, 160, 14)
+assert region(render_at(12000), 8, 141, 28, 19) != region(render_at(12300), 8, 141, 28, 19)
+assert region(render_at(12000), 64, 153, 104, 5) != region(render_at(15999), 64, 153, 104, 5)
+assert region(render_at(15999), *middle_box) == region(render_at(16000), *middle_box)
+assert region(render_at(12000), 64, 152, 35, 8) == region(render_at(12200), 64, 152, 35, 8)
+assert region(render_at(12000), 106, 152, 60, 8) == region(render_at(12200), 106, 152, 60, 8)
 
 # Phase offsets stagger slot changes: status at 1s, paired weather at 2s,
 # main at 4s, then each group changes items every four seconds.
