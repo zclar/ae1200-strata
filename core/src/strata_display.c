@@ -400,6 +400,41 @@ static const struct weather_sample weather_samples[] = {
  */
 
 
+static const char sun_sprite[32][33] = {
+    "...............BBBB.............",
+    ".......BBB....BOOOOB............",
+    "......BOOB...BOOYOB.............",
+    "....BBOOB..BBOYYYYOBB...BBBB....",
+    "....BBOOYBBYYOYYYYOYYBBBYYOYB...",
+    "....BBOYOBBOOYYYYYYOOBBBOOOOB...",
+    "....BBOYYOOYYYYYYYYYYOOOYYOOOB..",
+    "......BOYYYYYYYYYYYYYYYYYOBYOB..",
+    "..BB..BOYYYYYOOOOOOYYYYYOB..B...",
+    "..BOYBOYYYYOOOOOOOOOOYYYYOBB....",
+    "...BOOOYYYOOOYYYYYYOOOYYYOBB.BB.",
+    ".B..BBOYYOOYYYYYYYYYYOOYYOOOBOOB",
+    "BOBBOOYYYOOYYYYYYYYYYOOYYYYOOYOB",
+    "BOOOOYYYOOYYYYYYYYYYYYOOYYYYYOB.",
+    "BOYYYYYYOOYYYYYYYYYYYYOOYYYOOB..",
+    ".BOYYYYYOOYYYYYYYYYYYYOOYYYYOOB.",
+    ".BOOYYYYOOYYYYYYYYYYYYOOYYYYYOB.",
+    "..BOOYYYOOYYYYYYYYYYYYOOYYYYYYOB",
+    "...BOOYYOOYYYYYYYYYYYYOOYYYOOOOB",
+    "...BOOYYYOOYYYYYYYYYYOOYYYOOBBOB",
+    "..BOOOYYYOOYYYYYYYYYYOOYYOBB..B.",
+    "...BBBOYYYOOOYYYYYYOOOYYYYOOB...",
+    "....BBOYYYYOOOOOOOOOOYYYYOOOOB..",
+    "......BOYYYYYOOOOOOYYYYYOBBBB...",
+    "...B..BOYYYYYYYYYYYYYYYYOB......",
+    "..BOYBOYYYOYYYYYYYYYYOOYYOBB....",
+    "..BOOOYYOOBOOYYYYYYOOBBOYOBB....",
+    "..BOOOOOOOBOOOYYYYOOOBBOYOBB....",
+    "...BYOOOBB.BBOYYYYOBB..BOB......",
+    "....BBBB.....BOYYOB...BOOB......",
+    "............BOOOOB.....BB.......",
+    ".............BBBB...............",
+};
+
 static const char cloud_sprite[24][33] = {
     ".................WWWWW..........",
     "...............WWWWWWWWW........",
@@ -430,7 +465,8 @@ static const char cloud_sprite[24][33] = {
 static char sprite_cell(const char rows[][33], int height, int x, int y)
 {
     if (x < 0 || y < 0 || x >= 64 || y >= height * 2) return '.';
-    return rows[y / 2][x / 2];
+    char cell = rows[y / 2][x / 2];
+    return cell ? cell : '.';
 }
 
 static int sun_sway(uint32_t ms)
@@ -445,85 +481,27 @@ static int sun_sway(uint32_t ms)
     return wave[i] + (wave[(i + 1u) % ARRAY_SIZE(wave)] - wave[i]) * fraction / 100;
 }
 
-/* Rounded fixed-point coordinates keep mirrored rays symmetric. */
-static int sun_round(int value)
-{
-    return value < 0 ? -((-value + 128) / 256) : (value + 128) / 256;
-}
-
-static void sun_ray(uint8_t *f, struct point direction, int bend)
-{
-    /* Four cross-sections form one connected, tapered blade. The root is
-     * anchored under the disk; bending increases smoothly towards the tip.
-     * The union of the filled rays is outlined after rasterization. */
-    static const int length[] = {15, 20, 25, 29};
-    static const int width[] = {4, 4, 3, 1};
-    static const int flex[] = {0, 2, 6, 10};
-    struct point contour[8];
-    for (int j = 0; j < 4; ++j) {
-        int radius = length[j];
-        int half_width = width[j];
-        int lean = bend * flex[j] / 10;
-        for (int side = 0; side < 2; ++side) {
-            int offset = lean + (side ? -half_width : half_width) * 256;
-            struct point p = {
-                sun_round(direction.x * radius - direction.y * offset / 256),
-                sun_round(direction.y * radius + direction.x * offset / 256),
-            };
-            contour[side ? 7 - j : j] = p;
-        }
-    }
-    /* Each blade has one horizontal span per row. Record the exact pixel
-     * boundary first, then fill between its extrema: no rounding cracks
-     * between independently rasterized polygon edges and interiors. */
-    int8_t left[64], right[64];
-    for (int y = 0; y < 64; ++y) { left[y] = 31; right[y] = -31; }
-    for (int j = 0; j < 8; ++j) {
-        int x = contour[j].x, y = contour[j].y;
-        int x1 = contour[(j + 1) % 8].x, y1 = contour[(j + 1) % 8].y;
-        int dx = x1 > x ? x1 - x : x - x1;
-        int dy = y1 > y ? y - y1 : y1 - y;
-        int step_x = x < x1 ? 1 : -1, step_y = y < y1 ? 1 : -1;
-        int error = dx + dy;
-        for (;;) {
-            if (x < left[y + 32]) left[y + 32] = (int8_t)x;
-            if (x > right[y + 32]) right[y + 32] = (int8_t)x;
-            if (x == x1 && y == y1) break;
-            int twice = 2 * error;
-            if (twice >= dy) { error += dy; x += step_x; }
-            if (twice <= dx) { error += dx; y += step_y; }
-        }
-    }
-    for (int y = 0; y < 64; ++y)
-        if (left[y] <= right[y])
-            rect(f, 38 + left[y], 49 + y - 32, right[y] - left[y] + 1, 1, STRATA_YELLOW);
-}
-
 static void weather_sun(uint8_t *f, uint32_t local_ms)
 {
-    static const struct point directions[] = {
-        {0, -256}, {181, -181}, {256, 0}, {181, 181},
-        {0, 256}, {-181, 181}, {-256, 0}, {-181, -181},
-    };
-    /* A 2.4-second eased sway, +/-4 panel pixels at each tip. There are
-     * no flashing pixels, moving disk, or displaced fragments of a sprite. */
-    int bend = sun_sway(local_ms) * 32;
-    for (unsigned int i = 0; i < ARRAY_SIZE(directions); ++i)
-        sun_ray(f, directions[i], bend);
-    disc(f, 38, 49, 18, STRATA_YELLOW);
-    /* Outline the completed silhouette. Separate inner/outer polygons can
-     * leave black flecks where their rounded edges rasterize differently. */
-    for (int y = 18; y <= 80; ++y)
-        for (int x = 7; x <= 69; ++x) {
-            int p = y * STRATA_WIDTH + x;
-            if (f[p] != STRATA_YELLOW &&
-                (f[p - 1] == STRATA_YELLOW || f[p + 1] == STRATA_YELLOW ||
-                 f[p - STRATA_WIDTH] == STRATA_YELLOW ||
-                 f[p + STRATA_WIDTH] == STRATA_YELLOW))
-                f[p] = STRATA_BLACK;
+    /* Restore the reference artwork at 56x56 (previously 64x64). The only
+     * motion is the same whole-sprite horizontal drift used by the cloud. */
+    int drift = sun_sway(local_ms) / 24;
+    for (int y = 0; y < 56; ++y) {
+        for (int x = 0; x < 56; ++x) {
+            int sx = x * 64 / 56, sy = y * 64 / 56;
+            char cell = sprite_cell(sun_sprite, 32, sx, sy);
+            if (cell == '.') continue;
+            int radius = (sx - 31) * (sx - 31) + (sy - 31) * (sy - 31);
+            int edge = sprite_cell(sun_sprite, 32, sx - 1, sy) == '.' ||
+                       sprite_cell(sun_sprite, 32, sx + 1, sy) == '.' ||
+                       sprite_cell(sun_sprite, 32, sx, sy - 1) == '.' ||
+                       sprite_cell(sun_sprite, 32, sx, sy + 1) == '.';
+            uint8_t color = cell == 'B' || edge ? STRATA_BLACK :
+                cell == 'O' || (radius >= 365 && radius < 500) ? STRATA_RED :
+                STRATA_YELLOW;
+            rect(f, 10 + drift + x, 21 + y, 1, 1, color);
         }
-    disc(f, 38, 49, 18, STRATA_RED);
-    disc(f, 38, 49, 17, STRATA_YELLOW);
+    }
 }
 
 static char cloud_cell(int x, int y)

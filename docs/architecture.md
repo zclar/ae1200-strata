@@ -49,13 +49,11 @@ slots last a full four seconds. Reels can grow by adding a callback and one
 array entry without changing their phase.
 
 The circle and middle/world-map opening are owned by a single coordinated reel:
-classic clock/map, sunny, cloudy, rainy, thunderstorm. The sunny card draws eight
-connected tapered ray polygons around a fixed yellow disk with a thin red rim.
-Fixed-point cross-sections bend progressively from anchored roots to tips;
-the 2.4-second eased waveform moves tips up to four panel pixels each way.
-The completed silhouette is outlined once, avoiding holes or mismatched edges
-from displacing individual sprite pixels. No floating point, heap allocation,
-or frame buffer beyond the shared display frame is needed. The cloud remains a
+classic clock/map, sunny, cloudy, rainy, thunderstorm. The sunny card uses the
+restored reference-based character-grid sprite, nearest-neighbor scaled from
+64x64 to 56x56 pixels. Its colors and rays stay static; the complete sprite uses
+the same one-pixel horizontal drift and 2.4-second period as the cloud. Ray
+bending and animated highlights have been removed. The cloud remains a
 hand-authored character-grid sprite with white lobes and cyan/blue stipple shadows that
 move with the sprite. Rain falls in alternating blue/cyan
 pixel blocks; storm lightning fires
@@ -66,6 +64,10 @@ conditions and values cannot advance independently. Temperatures are Fahrenheit;
 all cards include humidity and UV, and rain/storm cards include rain probability.
 No network or weather service is involved. These callbacks are compiled into
 both the desktop library and Nordic firmware; Tk only presents their pixels.
+
+Visual TODO: sun, cloud, and lightning artwork still needs refinement to look
+good. These are provisional visuals; revisit their shapes, shading, and motion
+before treating them as final demo art.
 
 This is intentionally not containerized. A process or container boundary would
 not exist on the nRF52840/nRF54L15 and would break simulator-to-hardware parity.

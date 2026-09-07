@@ -31,17 +31,18 @@ Every reel item lasts
 four seconds, with staggered change times for the top status, paired circle/map,
 and bottom openings (the first status and circle/map slots are shortened to
 establish the stagger). The circle and middle/world-map opening rotate together
-through classic, sunny, cloudy, rainy, and thunderstorm cards. The sun uses a
-simple round yellow disk with a thin red rim and eight solid, tapered rays.
-The rays bend tangentially through a 2.4-second eased loop, anchored at the disk,
-with up to four display pixels of tip movement in each direction. A continuous
-black outline follows their silhouettes. The reference-based colored cloud has
+through classic, sunny, cloudy, rainy, and thunderstorm cards. The sun restores
+the reference-based irregular sprite, reduced from 64x64 to 56x56 pixels. Its
+artwork stays static and the whole sun uses the same gentle horizontal drift
+as the cloud (one pixel each way over 2.4 seconds). The colored cloud has
 overlapping lobes, a continuous black outline, and cyan/blue shadow stipple that
 remains visible on the reflective panel.
 Rain falls as alternating blue/cyan blocks. The storm card adds two quick
 yellow lightning flashes. Tiny three-bar condition meters complete the LCD-style
 weather cards. Weather uses Fahrenheit demo temperatures, humidity and UV
 readings, plus rain probability on rain/storm cards.
+Visual TODO: the sun, cloud, and lightning still need work to look good;
+their current artwork is provisional, not a finished visual baseline.
 All weather graphics and timing live in the shared C renderer. See
 [packaging/README.md](packaging/README.md) for removal and details.
 
