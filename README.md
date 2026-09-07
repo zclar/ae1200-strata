@@ -22,15 +22,20 @@ The app rebuilds the shared renderer automatically when its C source changes.
 Use `./bin/ae1200-strata --check` to verify the local runtime without opening a
 window. Its faceplate view includes the original-style printed legends, analog
 minute track, screws, and exact provisional aperture clipping. The upper status
-opening currently reels between the classic indicators and an animated battery
-level. The main opening alternates between the classic clock and fast,
-smooth-scrolling Messages and Gmail notification cards. Every reel item lasts
+opening currently reels between the classic indicators and an eight-bar LCD
+battery gauge with a percentage inside its outline. Bars light in discrete
+steps, with outlined empty cells. The main opening alternates between the
+classic clock and fast, smooth-scrolling Messages and Gmail notification cards.
+Every reel item lasts
 four seconds, with staggered change times for the top status, paired circle/map,
 and bottom openings (the first status and circle/map slots are shortened to
 establish the stagger). The circle and middle/world-map opening rotate together
 through classic, sunny, cloudy, rainy, and thunderstorm cards. Clouds are solid;
-the storm card adds pulsing yellow lightning and rain. Weather uses Fahrenheit demo
-temperatures, humidity and UV readings, plus rain probability on rain/storm cards.
+the pixel sun has a two-frame face and chunky rays, clouds use stepped sprites,
+and rain falls as alternating blue/cyan blocks. The storm card adds two quick
+yellow lightning flashes. Tiny three-bar condition meters complete the LCD-style
+weather cards. Weather uses Fahrenheit demo temperatures, humidity and UV
+readings, plus rain probability on rain/storm cards.
 All weather graphics and timing live in the shared C renderer. See
 [packaging/README.md](packaging/README.md) for removal and details.
 

@@ -50,8 +50,11 @@ array entry without changing their phase.
 
 The circle and middle/world-map opening are owned by a single coordinated reel:
 classic clock/map, sunny, cloudy, rainy, thunderstorm. Solid black clouds drift;
-rain falls in blue and storm lightning pulses in yellow. A weather callback selects one demo
-sample and draws both its animated icon and its readings in the same frame, so
+their silhouettes use deliberate rectangular steps instead of smooth curves.
+Rain falls in alternating blue/cyan pixel blocks, the friendly sun toggles
+chunky rays, and storm lightning fires in two short yellow flashes. Three tiny
+bars reinforce each card's segmented-instrument character. A weather callback
+selects one demo sample and draws both its animated icon and its readings in the same frame, so
 conditions and values cannot advance independently. Temperatures are Fahrenheit;
 all cards include humidity and UV, and rain/storm cards include rain probability.
 No network or weather service is involved. These callbacks are compiled into

@@ -225,7 +225,8 @@ static void battery_status(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
 {
     const int x = 99, y = 11, width = 68, height = 16;
     unsigned int level = 25u + (local_ms * 70u) / (REEL_ITEM_DURATION_MS - 1u);
-    int fill_width = (int)(level * (unsigned int)(width - 6) / 100u);
+    const unsigned int bar_count = 8u;
+    unsigned int lit_bars = (level * bar_count + 50u) / 100u;
     char percentage[] = {'0', '0', '%', '\0'};
 
     (void)elapsed_ms;
@@ -240,11 +241,18 @@ static void battery_status(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
     rect(f, x + 1, y + height - 2, 1, 1, STRATA_BLACK);
     rect(f, x + width - 2, y + height - 2, 1, 1, STRATA_BLACK);
     rect(f, x + width, y + 5, 4, height - 10, STRATA_BLACK);
-    rect(f, x + 3, y + 3, fill_width, height - 6, STRATA_GREEN);
+    /* Chunky LCD cells light in whole steps; empty cells retain their outline. */
+    for (unsigned int bar = 0; bar < bar_count; ++bar) {
+        int bar_x = x + 3 + (int)bar * 5;
+        rect(f, bar_x, y + 3, 4, height - 6,
+             bar < lit_bars ? STRATA_GREEN : STRATA_BLACK);
+        if (bar >= lit_bars)
+            rect(f, bar_x + 1, y + 4, 2, height - 8, STRATA_WHITE);
+    }
 
     percentage[0] = (char)('0' + level / 10u);
     percentage[1] = (char)('0' + level % 10u);
-    label(f, percentage, 124, 15, 1, STRATA_BLACK);
+    label(f, percentage, 144, 15, 1, STRATA_BLACK);
 }
 
 static void status_reel(uint8_t *f, uint32_t elapsed_ms)
@@ -363,48 +371,68 @@ struct weather_sample {
     const char *detail;
 };
 static const struct weather_sample weather_samples[] = {
-    {"78", "HUM 42%", "UV 6", "SUNNY"},
-    {"68", "HUM 64%", "UV 2", "CLOUDY"},
-    {"61", "HUM 88%", "UV 1", "RAIN 80%"},
-    {"64", "HUM 92%", "UV 0", "RAIN 95%"},
+    {"78", "42%", "6", "SUNNY"},
+    {"68", "64%", "2", "CLOUDY"},
+    {"61", "88%", "1", "RAIN 80%"},
+    {"64", "92%", "0", "RAIN 95%"},
 };
 
 static void weather_sun(uint8_t *f, uint32_t local_ms)
 {
-    static const struct point directions[] = {
-        {100, 0}, {92, 38}, {71, 71}, {38, 92},
-        {0, 100}, {-38, 92}, {-71, 71}, {-92, 38},
-        {-100, 0}, {-92, -38}, {-71, -71}, {-38, -92},
-        {0, -100}, {38, -92}, {71, -71}, {92, -38},
+    static const struct point outer[] = {
+        {-8, -13}, {8, -13}, {13, -8}, {13, 8},
+        {8, 13}, {-8, 13}, {-13, 8}, {-13, -8},
     };
-    unsigned int phase = local_ms / 125u;
-    for (unsigned int ray = 0; ray < 8u; ++ray) {
-        struct point d = directions[(ray * 2u + phase) % ARRAY_SIZE(directions)];
-        int x0 = 38 + d.x * 18 / 100, y0 = 49 + d.y * 18 / 100;
-        int x1 = 38 + d.x * 24 / 100, y1 = 49 + d.y * 24 / 100;
-        line(f, x0, y0, x1, y1, STRATA_BLACK);
-        line(f, x0 + 1, y0, x1 + 1, y1, STRATA_YELLOW);
-    }
-    disc(f, 38, 49, 13, STRATA_BLACK);
-    disc(f, 38, 49, 11, STRATA_YELLOW);
+    static const struct point inner[] = {
+        {-6, -11}, {6, -11}, {11, -6}, {11, 6},
+        {6, 11}, {-6, 11}, {-11, 6}, {-11, -6},
+    };
+    int pulse = (int)((local_ms / 250u) & 1u);
+
+    /* Eight chunky rays alternate by one pixel like a two-frame LCD sprite. */
+    rect(f, 36, 18 - pulse, 4, 9, STRATA_YELLOW);
+    rect(f, 36, 71 + pulse, 4, 9, STRATA_YELLOW);
+    rect(f, 7 - pulse, 47, 9, 4, STRATA_YELLOW);
+    rect(f, 60 + pulse, 47, 9, 4, STRATA_YELLOW);
+    rect(f, 16 - pulse, 27 - pulse, 6, 4, STRATA_YELLOW);
+    rect(f, 54 + pulse, 27 - pulse, 6, 4, STRATA_YELLOW);
+    rect(f, 16 - pulse, 67 + pulse, 6, 4, STRATA_YELLOW);
+    rect(f, 54 + pulse, 67 + pulse, 6, 4, STRATA_YELLOW);
+
+    polygon(f, 38, 49, outer, ARRAY_SIZE(outer), STRATA_BLACK);
+    polygon(f, 38, 49, inner, ARRAY_SIZE(inner), STRATA_YELLOW);
+    /* A tiny face gives the sunny card a playful, intentional pixel-art look. */
+    rect(f, 32, 45, 3, 3, STRATA_BLACK);
+    rect(f, 42, 45, 3, 3, STRATA_BLACK);
+    rect(f, 34, 55, 9, 2, STRATA_BLACK);
+    rect(f, 32, 53, 2, 2, STRATA_BLACK);
+    rect(f, 43, 53, 2, 2, STRATA_BLACK);
 }
 
-static void weather_cloud(uint8_t *f, uint32_t local_ms, int rainy)
+static void weather_cloud(uint8_t *f, uint32_t local_ms, int precipitation)
 {
-    int step = (int)((local_ms / 180u) % 12u);
+    int step = (int)((local_ms / 220u) % 12u);
     int drift = (step <= 6 ? step : 12 - step) - 3;
-    int x = 16 + drift, y = rainy ? 32 : 38;
-    /* Solid clouds use native panel black, with no simulated gray fill. */
-    disc(f, x + 10, y + 12, 10, STRATA_BLACK);
-    disc(f, x + 22, y + 6, 12, STRATA_BLACK);
-    disc(f, x + 33, y + 13, 9, STRATA_BLACK);
-    rect(f, x + 10, y + 10, 24, 14, STRATA_BLACK);
-    if (rainy) {
-        for (int drop = 0; drop < 4; ++drop) {
-            int fall = (int)((local_ms / 60u + (uint32_t)drop * 4u) % 13u);
-            int dx = 24 + drop * 9, dy = 59 + fall;
-            line(f, dx, dy, dx - 2, dy + 3, STRATA_BLUE);
-            line(f, dx + 1, dy, dx - 1, dy + 3, STRATA_BLUE);
+    int bob = (int)((local_ms / 500u) & 1u);
+    int x = 13 + drift, y = (precipitation ? 31 : 38) + bob;
+
+    /* A solid, stepped silhouette reads cleanly at the panel's real pixel pitch. */
+    rect(f, x + 5, y + 10, 43, 13, STRATA_BLACK);
+    rect(f, x + 9, y + 6, 35, 17, STRATA_BLACK);
+    rect(f, x + 16, y + 2, 20, 21, STRATA_BLACK);
+    rect(f, x + 21, y, 11, 23, STRATA_BLACK);
+    rect(f, x + 2, y + 14, 49, 5, STRATA_BLACK);
+    /* Pixel steps soften the corners without turning them into smooth curves. */
+    rect(f, x + 3, y + 12, 3, 9, STRATA_BLACK);
+    rect(f, x + 47, y + 12, 3, 9, STRATA_BLACK);
+
+    if (precipitation) {
+        for (int drop = 0; drop < 5; ++drop) {
+            int fall = (int)((local_ms / 70u + (uint32_t)drop * 5u) % 15u);
+            int dx = 18 + drop * 10, dy = 57 + fall;
+            uint8_t color = (drop & 1) ? STRATA_CYAN : STRATA_BLUE;
+            rect(f, dx, dy, 3, 5, color);
+            rect(f, dx - 2, dy + 4, 3, 3, color);
         }
     }
 }
@@ -414,15 +442,21 @@ static void weather_pair(uint8_t *f, uint32_t local_ms, enum weather_condition c
     const struct weather_sample *sample = &weather_samples[condition];
     if (condition == WEATHER_SUNNY)
         weather_sun(f, local_ms);
-    else
+    else {
+        if (condition == WEATHER_STORM) {
+            uint32_t flash = local_ms % 2000u;
+            if (flash < 160u || (flash >= 320u && flash < 480u))
+                disc(f, 38, 49, 31, STRATA_YELLOW);
+        }
         weather_cloud(f, local_ms, condition >= WEATHER_RAINY);
+    }
 
     if (condition == WEATHER_STORM) {
         static const struct point bolt[] = {
             {3, 0}, {12, 0}, {7, 9}, {13, 9}, {0, 27}, {4, 14}, {-2, 14},
         };
         uint32_t pulse = local_ms % 2000u;
-        if (pulse < 250u || (pulse >= 450u && pulse < 700u)) {
+        if (pulse < 160u || (pulse >= 320u && pulse < 480u)) {
             polygon(f, 36, 48, bolt, ARRAY_SIZE(bolt), STRATA_YELLOW);
             for (size_t i = 0; i < ARRAY_SIZE(bolt); ++i) {
                 struct point a = bolt[i], b = bolt[(i + 1u) % ARRAY_SIZE(bolt)];
@@ -436,12 +470,20 @@ static void weather_pair(uint8_t *f, uint32_t local_ms, enum weather_condition c
     rect(f, 126, 41, 4, 4, STRATA_BLACK);
     rect(f, 127, 42, 2, 2, STRATA_WHITE);
     label(f, "F", 132, 46, 1, STRATA_BLACK);
-    if (condition == WEATHER_STORM) label(f, "STORM", 140, 43, 1, STRATA_BLACK);
     line(f, 101, 56, 169, 56, STRATA_BLACK);
-    label(f, sample->humidity, 101, 60, 1, STRATA_BLACK);
-    label(f, sample->uv, 147, 60, 1, STRATA_BLACK);
+    label(f, "HUM", 101, 60, 1, STRATA_BLACK);
+    label(f, sample->humidity, 123, 60, 1, STRATA_BLUE);
+    label(f, "UV", 149, 60, 1, STRATA_BLACK);
+    label(f, sample->uv, 164, 60, 1, STRATA_YELLOW);
     label(f, sample->detail, 101, 73, 1,
           condition >= WEATHER_RAINY ? STRATA_BLUE : STRATA_BLACK);
+    /* Three little blocks echo segmented instruments and show weather severity. */
+    for (int bar = 0; bar < 3; ++bar) {
+        int height = 2 + bar * 2;
+        uint8_t color = condition == WEATHER_SUNNY ? STRATA_YELLOW :
+                        condition >= WEATHER_RAINY ? STRATA_BLUE : STRATA_BLACK;
+        rect(f, 154 + bar * 5, 79 - height, 3, height, color);
+    }
 }
 
 static void sunny_pair(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)

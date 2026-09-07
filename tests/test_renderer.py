@@ -109,8 +109,9 @@ for ms in (2100, 6100, 10100, 14100):
     assert region(initial, *circle_box) != region(later, *circle_box), "weather icon is static"
     assert region(initial, *middle_box) == region(later, *middle_box), "weather readings drifted"
     assert max(initial) <= 7
-assert 1 in region(render_at(10000), *middle_box), "rain probability must be visible"
-assert 1 not in region(render_at(6000), *middle_box), "cloudy card should omit rain probability"
+detail_box = (101, 73, 48, 7)
+assert 1 in region(render_at(10000), *detail_box), "rain probability must be blue"
+assert 1 not in region(render_at(6000), *detail_box), "cloudy label should not imply rain"
 assert region(render_at(2000), *middle_box) == region(render_at(22000), *middle_box)
 for ms in (2000, 6000, 10000):
     assert set(region(render_at(ms), 146, 42, 23, 7)) == {7}, "DEMO label was not removed"
