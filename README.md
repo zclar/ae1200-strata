@@ -33,10 +33,9 @@ and bottom openings (the first status and circle/map slots are shortened to
 establish the stagger). The circle and middle/world-map opening rotate together
 through classic, sunny, cloudy, rainy, and thunderstorm cards. The sun and cloud
 are hand-authored pixel sprites based on the supplied visual references. The
-sun's connected, curled rays sway gently around a fixed round center over a
-2.4-second cycle. The white cloud has overlapping lobes, a continuous black
-outline, and two densities of black/white stipple for its gray-looking shadows.
-Those patterns use real RGB111 pixels, not an extra gray panel color.
+sunny card is now a sunrise: a clean round disk rises behind a stepped
+red/yellow horizon. The colored cloud has overlapping lobes, a continuous black
+outline, and cyan/blue shadow stipple that remains visible on the reflective panel.
 Rain falls as alternating blue/cyan blocks. The storm card adds two quick
 yellow lightning flashes. Tiny three-bar condition meters complete the LCD-style
 weather cards. Weather uses Fahrenheit demo temperatures, humidity and UV

@@ -51,12 +51,11 @@ array entry without changing their phase.
 The circle and middle/world-map opening are owned by a single coordinated reel:
 classic clock/map, sunny, cloudy, rainy, thunderstorm. The sun and cloud are
 hand-authored character-grid sprites in `strata_display.c`; their shape and
-shadow cells can be edited without changing the compositor. The sun uses an
-inverse-mapped two-pixel maximum tangential sway, eased over 2.4 seconds, with
-a stationary center. The cloud uses white lobes and two densities of native
-black/white pixels to suggest the reference's gray shadows. Its pattern moves
-with the sprite, avoiding stationary screen-space stipple during drift.
-Rain falls in alternating blue/cyan pixel blocks; storm lightning fires
+shadow cells can be edited without changing the compositor. The sunny card now
+uses a rising round disk and stepped
+red/yellow horizon bands. The cloud uses white lobes and colored cyan/blue
+stipple shadows that move with the sprite. Rain falls in alternating blue/cyan
+pixel blocks; storm lightning fires
 in two short yellow flashes. Three tiny
 bars reinforce each card's segmented-instrument character. A weather callback
 selects one demo sample and draws both its animated icon and its readings in the same frame, so

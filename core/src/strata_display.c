@@ -478,43 +478,28 @@ static int sun_sway(uint32_t ms)
     return wave[i] + (wave[(i + 1u) % ARRAY_SIZE(wave)] - wave[i]) * fraction / 100;
 }
 
-static int sun_occupied(int x, int y, int wave_top, int wave_bottom)
-{
-    int dx = x - 31, dy = y - 31;
-    int radius = dx * dx + dy * dy;
-    /* Bend the connected tips tangentially by at most two pixels.
-     * Inverse mapping avoids gaps; the inner body is stationary. */
-    int strength = radius > 400 ? radius - 400 : 0;
-    if (strength > 500) strength = 500;
-    int wave = dy < 0 ? wave_top : wave_bottom;
-    int offset_x = -dy * strength * wave / (31 * 500 * 16);
-    int offset_y = dx * strength * wave / (31 * 500 * 16);
-    int sx = x - offset_x - 2, sy = y - offset_y - 2;
-    if (sx < 0 || sy < 0 || sx >= 60 || sy >= 60) return 0;
-    return sprite_cell(sun_sprite, 32, sx * 64 / 60, sy * 64 / 60) != '.';
-}
-
 static void weather_sun(uint8_t *f, uint32_t local_ms)
 {
-    int wave_top = sun_sway(local_ms), wave_bottom = sun_sway(local_ms + 400u);
-    for (int y = 0; y < 64; ++y) {
-        for (int x = 0; x < 64; ++x) {
-            if (!sun_occupied(x, y, wave_top, wave_bottom)) continue;
-            int edge = !sun_occupied(x - 1, y, wave_top, wave_bottom) ||
-                       !sun_occupied(x + 1, y, wave_top, wave_bottom) ||
-                       !sun_occupied(x, y - 1, wave_top, wave_bottom) ||
-                       !sun_occupied(x, y + 1, wave_top, wave_bottom);
-            int rim = !sun_occupied(x - 3, y, wave_top, wave_bottom) ||
-                      !sun_occupied(x + 3, y, wave_top, wave_bottom) ||
-                      !sun_occupied(x, y - 3, wave_top, wave_bottom) ||
-                      !sun_occupied(x, y + 3, wave_top, wave_bottom);
-            uint8_t color = edge ? STRATA_BLACK : rim ? STRATA_RED : STRATA_YELLOW;
-            rect(f, x + 7, y + 18, 1, 1, color);
-        }
+    (void)sun_sprite;
+    static const uint8_t rise[] = {
+        0, 0, 1, 2, 3, 4, 6, 8, 10, 12, 14, 16,
+        18, 19, 20, 21, 22, 22, 22, 22, 22, 22, 22, 22,
+        22, 22, 22, 22, 22, 22, 22, 22,
+    };
+    unsigned int frame = (local_ms % REEL_ITEM_DURATION_MS) / 125u;
+    int center_y = 66 - rise[frame];
+    /* The disk rises behind a stepped horizon and warm native-color bands. */
+    rect(f, 8, 75, 60, 2, STRATA_BLACK);
+    rect(f, 12, 72, 52, 3, STRATA_RED);
+    rect(f, 17, 69, 42, 3, STRATA_YELLOW);
+    rect(f, 23, 67, 30, 2, STRATA_RED);
+    disc(f, 38, center_y, 18, STRATA_BLACK);
+    disc(f, 38, center_y, 16, STRATA_RED);
+    disc(f, 38, center_y - 1, 13, STRATA_YELLOW);
+    if ((frame & 3u) < 2u) {
+        rect(f, 13, center_y - 1, 6, 2, STRATA_YELLOW);
+        rect(f, 57, center_y - 1, 6, 2, STRATA_YELLOW);
     }
-    /* The reference has a warm inner rim, with no black circle through the rays. */
-    disc(f, 38, 49, 18, STRATA_RED);
-    disc(f, 37, 48, 16, STRATA_YELLOW);
 }
 
 static char cloud_cell(int x, int y)
@@ -541,8 +526,10 @@ static void weather_cloud(uint8_t *f, uint32_t local_ms, int precipitation)
             /* Anchor the pattern to the sprite so shading moves with the cloud. */
             int ink = cell == 'S' ? ((x & 1) == 0 && (y & 1) == 0) :
                       cell == 'M' ? ((x + y) & 1) == 0 : 0;
-            rect(f, origin_x + x, origin_y + y, 1, 1,
-                 ink ? STRATA_BLACK : STRATA_WHITE);
+            uint8_t color = cell == 'S' ? (ink ? STRATA_CYAN : STRATA_WHITE) :
+                            cell == 'M' ? (ink ? STRATA_BLUE : STRATA_WHITE) :
+                            STRATA_WHITE;
+            rect(f, origin_x + x, origin_y + y, 1, 1, color);
         }
     }
     if (precipitation) {
