@@ -501,7 +501,7 @@ static void weather_sun(uint8_t *f, uint32_t local_ms)
             char cell = sprite_cell(sun_sprite, 32, sx, sy);
             if (cell == '.') continue;
             int radius = (sx - 31) * (sx - 31) + (sy - 31) * (sy - 31);
-            int moving_ray = radius > 1100;
+            int moving_ray = radius > 850;
             /* The authored sprite is made of 2x2 display-pixel cells. Never
              * split one while animating; doing so produces the old glitch. */
             if (moving_ray && ((sx & 1) || (sy & 1))) continue;
@@ -546,7 +546,7 @@ static void weather_sun(uint8_t *f, uint32_t local_ms)
                 /* Only the ray tips flex; the body never swims. */
                 int dx = sx - 31;
                 int dy = sy - 31;
-                int sway = sway_wave[frame];
+                int sway = sway_wave[frame] * 2;
                 int adx = dx < 0 ? -dx : dx;
                 int ady = dy < 0 ? -dy : dy;
                 if (adx > ady)
@@ -560,23 +560,6 @@ static void weather_sun(uint8_t *f, uint32_t local_ms)
             }
             rect(f, draw_x, draw_y, moving_ray ? 2 : 1, moving_ray ? 2 : 1, color);
         }
-    }
-
-    /* Deliberate, visible ray motion. These are complete chunky tips (not
-     * individual pixels), so each ray appears to lean and return smoothly. */
-    static const struct point ray_tips[] = {
-        {31, 1}, {48, 9}, {62, 31}, {48, 53},
-        {31, 62}, {14, 53}, {0, 31}, {14, 9},
-    };
-    static const struct point ray_tangent[] = {
-        {1, 0}, {1, -1}, {0, -1}, {-1, -1},
-        {-1, 0}, {-1, 1}, {0, 1}, {1, 1},
-    };
-    for (unsigned int i = 0; i < ARRAY_SIZE(ray_tips); ++i) {
-        int sway = sway_wave[(frame + i * 2u) & 7u] * 2;
-        int x = 7 + ray_tips[i].x + ray_tangent[i].x * sway;
-        int y = 18 + ray_tips[i].y + ray_tangent[i].y * sway;
-        rect(f, x - 1, y - 1, 3, 3, STRATA_YELLOW);
     }
 }
 
