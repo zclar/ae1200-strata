@@ -486,7 +486,16 @@ static void weather_sun(uint8_t *f, uint32_t local_ms)
      * ring stay still while a few outer lobe pixels breathe.  Moving the whole
      * contour by a pixel made the earlier version look like a vibrating icon.
      */
-    unsigned int frame = (local_ms / 200u) % 3u;
+    unsigned int frame = (local_ms / 120u) % 8u;
+    static const int8_t sway_wave[] = {-1, 0, 1, 1, 0, -1, -1, 0};
+    static const struct point ring_glints[] = {
+        {51, 31}, {45, 45}, {31, 51}, {17, 45},
+        {11, 31}, {17, 17}, {31, 11}, {45, 17},
+    };
+    static const struct point ray_glints[] = {
+        {31, 3}, {49, 13}, {59, 31}, {47, 51},
+        {31, 59}, {13, 49}, {3, 31}, {15, 13},
+    };
     for (int sy = 0; sy < 64; ++sy) {
         for (int sx = 0; sx < 64; ++sx) {
             char cell = sprite_cell(sun_sprite, 32, sx, sy);
@@ -508,17 +517,44 @@ static void weather_sun(uint8_t *f, uint32_t local_ms)
                 /* Narrow orange/red ring; avoid the oversized previous ring. */
                 color = STRATA_RED;
                 /* One-pixel glint travels around the ring instead of moving it. */
-                if ((frame == 0u && sx == 51 && sy == 31) ||
-                    (frame == 1u && sx == 31 && sy == 11) ||
-                    (frame == 2u && sx == 11 && sy == 31))
-                    color = STRATA_YELLOW;
             } else {
                 color = STRATA_YELLOW;
                 /* Two or three lobe highlights subtly trade places per frame. */
                 if (radius > 930 && ((sx + sy * 3 + frame * 2) % 11u) == 0u)
                     color = STRATA_RED;
             }
-            rect(f, 7 + sx, 18 + sy, 1, 1, color);
+
+            /* A travelling ring glint and an outer-ray glint add life without
+             * changing the authored silhouette or introducing sub-pixel blur. */
+            const struct point ring = ring_glints[frame];
+            const struct point ray = ray_glints[frame];
+            int ring_distance = (sx - ring.x) * (sx - ring.x) +
+                                (sy - ring.y) * (sy - ring.y);
+            int ray_distance = (sx - ray.x) * (sx - ray.x) +
+                               (sy - ray.y) * (sy - ray.y);
+            if (!edge && ring_distance <= 9)
+                color = STRATA_YELLOW;
+            if (!edge && radius > 700 && ray_distance <= 5)
+                color = STRATA_YELLOW;
+            int draw_x = 7 + sx;
+            int draw_y = 18 + sy;
+            if (!edge && radius > 900) {
+                /* Only the ray tips flex; the body never swims. */
+                int dx = sx - 31;
+                int dy = sy - 31;
+                int sway = sway_wave[frame];
+                int adx = dx < 0 ? -dx : dx;
+                int ady = dy < 0 ? -dy : dy;
+                if (adx > ady)
+                    draw_y += sway;
+                else if (ady > adx)
+                    draw_x += sway;
+                else {
+                    draw_x += sway;
+                    draw_y += sway;
+                }
+            }
+            rect(f, draw_x, draw_y, 1, 1, color);
         }
     }
 }
