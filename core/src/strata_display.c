@@ -399,38 +399,38 @@ static const struct weather_sample weather_samples[] = {
  * .=transparent. Stipple uses actual black/white RGB111 pixels.
  */
 static const char sun_sprite[32][33] = {
-    "...............YYY..............",
-    ".......YYY....YYYY..............",
-    "......YYYY....YYY...............",
-    ".....YYY.....YYYY.......YYY.....",
-    ".....YYY....YYYYYYY....YYYYY....",
-    ".....YYYY..YYYYYYYYYYYYYYYYYY...",
-    "......YYYYYYYYYYYYYYYYYYYY.YY...",
-    "......YYYYYYYYYYYYYYYYYYYYY.....",
-    "...YY.YYYYYYYYYYYYYYYYYYYY......",
-    "..YYY.YYYYYYYYYYYYYYYYYYYY..YY..",
-    "...YYYYYYYYYYYYYYYYYYYYYYYY.YYY.",
-    ".....YYYYYYYYYYYYYYYYYYYYYYYY...",
-    ".YY.YYYYYYYYYYYYYYYYYYYYYYYYYY..",
-    ".YYYYYYYYYYYYYYYYYYYYYYYYYYYYY..",
-    ".YYYYYYYYYYYYYYYYYYYYYYYYYYYY...",
-    ".YYYYYYYYYYYYYYYYYYYYYYYYYY.....",
-    "..YYYYYYYYYYYYYYYYYYYYYYYYY.....",
-    "...YYYYYYYYYYYYYYYYYYYYYYYYY....",
-    "...YYYYYYYYYYYYYYYYYYYYYYYYYYY..",
-    "..YYYYYYYYYYYYYYYYYYYYYYYYYYYY..",
-    "..YYYYYYYYYYYYYYYYYYYYYYYYY.....",
-    "...YYYYYYYYYYYYYYYYYYYYYYYY.....",
-    "....YYYYYYYYYYYYYYYYYYYYYYY.....",
-    "...YYYYYYYYYYYYYYYYYYYYYYYYYYY..",
-    "..YYYYYYYYYYYYYYYYYYYYYYYYYYYY..",
-    "..YYYYYYY.YYYYYYYYYYYYYYYYYYY...",
-    "...YYYYY..YYYYYYYYYYYYYYYYYY....",
-    "...........YYYYYYYYYYYYYYY.....",
-    ".............YYYYYYY....YY......",
-    "..............YYYYY.............",
-    "...............YYY..............",
-    "................................",
+    "...............BBBB.............",
+    ".......BBB....BOOOOB............",
+    "......BOOB...BOOYOB.............",
+    "....BBOOB..BBOYYYYOBB...BBBB....",
+    "....BBOOYBBYYOYYYYOYYBBBYYOYB...",
+    "....BBOYOBBOOYYYYYYOOBBBOOOOB...",
+    "....BBOYYOOYYYYYYYYYYOOOYYOOOB..",
+    "......BOYYYYYYYYYYYYYYYYYOBYOB..",
+    "..BB..BOYYYYYOOOOOOYYYYYOB..B...",
+    "..BOYBOYYYYOOOOOOOOOOYYYYOBB....",
+    "...BOOOYYYOOOYYYYYYOOOYYYOBB.BB.",
+    ".B..BBOYYOOYYYYYYYYYYOOYYOOOBOOB",
+    "BOBBOOYYYOOYYYYYYYYYYOOYYYYOOYOB",
+    "BOOOOYYYOOYYYYYYYYYYYYOOYYYYYOB.",
+    "BOYYYYYYOOYYYYYYYYYYYYOOYYYOOB..",
+    ".BOYYYYYOOYYYYYYYYYYYYOOYYYYOOB.",
+    ".BOOYYYYOOYYYYYYYYYYYYOOYYYYYOB.",
+    "..BOOYYYOOYYYYYYYYYYYYOOYYYYYYOB",
+    "...BOOYYOOYYYYYYYYYYYYOOYYYOOOOB",
+    "...BOOYYYOOYYYYYYYYYYOOYYYOOBBOB",
+    "..BOOOYYYOOYYYYYYYYYYOOYYOBB..B.",
+    "...BBBOYYYOOOYYYYYYOOOYYYYOOB...",
+    "....BBOYYYYOOOOOOOOOOYYYYOOOOB..",
+    "......BOYYYYYOOOOOOYYYYYOBBBB...",
+    "...B..BOYYYYYYYYYYYYYYYYOB......",
+    "..BOYBOYYYOYYYYYYYYYYOOYYOBB....",
+    "..BOOOYYOOBOOYYYYYYOOBBOYOBB....",
+    "..BOOOOOOOBOOOYYYYOOOBBOYOBB....",
+    "...BYOOOBB.BBOYYYYOBB..BOB......",
+    "....BBBB.....BOYYOB...BOOB......",
+    "............BOOOOB.....BB.......",
+    ".............BBBB...............",
 };
 
 static const char cloud_sprite[24][33] = {
@@ -480,20 +480,45 @@ static int sun_sway(uint32_t ms)
 
 static void weather_sun(uint8_t *f, uint32_t local_ms)
 {
-    unsigned int frame = (local_ms / 300u) & 1u;
+    /*
+     * Keep the silhouette locked to the panel grid.  Pixel-art animation
+     * reads best here as a restrained two-frame palette cycle: the center and
+     * ring stay still while a few outer lobe pixels breathe.  Moving the whole
+     * contour by a pixel made the earlier version look like a vibrating icon.
+     */
+    unsigned int frame = (local_ms / 200u) % 3u;
     for (int sy = 0; sy < 64; ++sy) {
         for (int sx = 0; sx < 64; ++sx) {
-            if (sprite_cell(sun_sprite, 32, sx, sy) == '.') continue;
+            char cell = sprite_cell(sun_sprite, 32, sx, sy);
+            if (cell == '.') continue;
             int radius = (sx - 31) * (sx - 31) + (sy - 31) * (sy - 31);
-            int sway = radius > 270 ? ((frame ^ (unsigned int)(sy / 8)) ? 1 : -1) : 0;
             int edge = sprite_cell(sun_sprite, 32, sx - 1, sy) == '.' ||
                        sprite_cell(sun_sprite, 32, sx + 1, sy) == '.' ||
                        sprite_cell(sun_sprite, 32, sx, sy - 1) == '.' ||
                        sprite_cell(sun_sprite, 32, sx, sy + 1) == '.';
-            uint8_t color = edge ? STRATA_BLACK :
-                            (radius >= 210 && radius < 430) ? STRATA_RED :
-                            STRATA_YELLOW;
-            rect(f, 7 + sx + sway, 18 + sy, 1, 1, color);
+            uint8_t color;
+            if (cell == 'B' || edge) {
+                color = STRATA_BLACK;
+            } else if (cell == 'O') {
+                color = STRATA_RED;
+            } else if (radius < 365) {
+                /* Broad, calm yellow disk from the supplied reference. */
+                color = STRATA_YELLOW;
+            } else if (radius < 500) {
+                /* Narrow orange/red ring; avoid the oversized previous ring. */
+                color = STRATA_RED;
+                /* One-pixel glint travels around the ring instead of moving it. */
+                if ((frame == 0u && sx == 51 && sy == 31) ||
+                    (frame == 1u && sx == 31 && sy == 11) ||
+                    (frame == 2u && sx == 11 && sy == 31))
+                    color = STRATA_YELLOW;
+            } else {
+                color = STRATA_YELLOW;
+                /* Two or three lobe highlights subtly trade places per frame. */
+                if (radius > 930 && ((sx + sy * 3 + frame * 2) % 11u) == 0u)
+                    color = STRATA_RED;
+            }
+            rect(f, 7 + sx, 18 + sy, 1, 1, color);
         }
     }
 }
