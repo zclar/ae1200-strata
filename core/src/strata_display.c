@@ -561,6 +561,23 @@ static void weather_sun(uint8_t *f, uint32_t local_ms)
             rect(f, draw_x, draw_y, moving_ray ? 2 : 1, moving_ray ? 2 : 1, color);
         }
     }
+
+    /* Deliberate, visible ray motion. These are complete chunky tips (not
+     * individual pixels), so each ray appears to lean and return smoothly. */
+    static const struct point ray_tips[] = {
+        {31, 1}, {48, 9}, {62, 31}, {48, 53},
+        {31, 62}, {14, 53}, {0, 31}, {14, 9},
+    };
+    static const struct point ray_tangent[] = {
+        {1, 0}, {1, -1}, {0, -1}, {-1, -1},
+        {-1, 0}, {-1, 1}, {0, 1}, {1, 1},
+    };
+    for (unsigned int i = 0; i < ARRAY_SIZE(ray_tips); ++i) {
+        int sway = sway_wave[(frame + i * 2u) & 7u] * 2;
+        int x = 7 + ray_tips[i].x + ray_tangent[i].x * sway;
+        int y = 18 + ray_tips[i].y + ray_tangent[i].y * sway;
+        rect(f, x - 1, y - 1, 3, 3, STRATA_YELLOW);
+    }
 }
 
 static char cloud_cell(int x, int y)
