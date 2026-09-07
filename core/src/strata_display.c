@@ -480,25 +480,21 @@ static int sun_sway(uint32_t ms)
 
 static void weather_sun(uint8_t *f, uint32_t local_ms)
 {
-    (void)sun_sprite;
-    static const uint8_t rise[] = {
-        0, 0, 1, 2, 3, 4, 6, 8, 10, 12, 14, 16,
-        18, 19, 20, 21, 22, 22, 22, 22, 22, 22, 22, 22,
-        22, 22, 22, 22, 22, 22, 22, 22,
-    };
-    unsigned int frame = (local_ms % REEL_ITEM_DURATION_MS) / 125u;
-    int center_y = 66 - rise[frame];
-    /* The disk rises behind a stepped horizon and warm native-color bands. */
-    rect(f, 8, 75, 60, 2, STRATA_BLACK);
-    rect(f, 12, 72, 52, 3, STRATA_RED);
-    rect(f, 17, 69, 42, 3, STRATA_YELLOW);
-    rect(f, 23, 67, 30, 2, STRATA_RED);
-    disc(f, 38, center_y, 18, STRATA_BLACK);
-    disc(f, 38, center_y, 16, STRATA_RED);
-    disc(f, 38, center_y - 1, 13, STRATA_YELLOW);
-    if ((frame & 3u) < 2u) {
-        rect(f, 13, center_y - 1, 6, 2, STRATA_YELLOW);
-        rect(f, 57, center_y - 1, 6, 2, STRATA_YELLOW);
+    unsigned int frame = (local_ms / 300u) & 1u;
+    for (int sy = 0; sy < 64; ++sy) {
+        for (int sx = 0; sx < 64; ++sx) {
+            if (sprite_cell(sun_sprite, 32, sx, sy) == '.') continue;
+            int radius = (sx - 31) * (sx - 31) + (sy - 31) * (sy - 31);
+            int sway = radius > 270 ? ((frame ^ (unsigned int)(sy / 8)) ? 1 : -1) : 0;
+            int edge = sprite_cell(sun_sprite, 32, sx - 1, sy) == '.' ||
+                       sprite_cell(sun_sprite, 32, sx + 1, sy) == '.' ||
+                       sprite_cell(sun_sprite, 32, sx, sy - 1) == '.' ||
+                       sprite_cell(sun_sprite, 32, sx, sy + 1) == '.';
+            uint8_t color = edge ? STRATA_BLACK :
+                            (radius >= 210 && radius < 430) ? STRATA_RED :
+                            STRATA_YELLOW;
+            rect(f, 7 + sx + sway, 18 + sy, 1, 1, color);
+        }
     }
 }
 
