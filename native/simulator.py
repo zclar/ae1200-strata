@@ -76,7 +76,7 @@ class Simulator:
         self.mask = tk.BooleanVar(value=True)
         tk.Checkbutton(root, text="Reference faceplate mask (unverified)", variable=self.mask, command=self.draw,
                        fg="#c2c9bd", bg="#111410", selectcolor="#242a22").grid(row=2, column=1, sticky="nw")
-        tk.Label(root, text="Hardware demo confirmed · 2026-09-06\n"
+        tk.Label(root, text="Hardware baseline confirmed · 2026-09-06\n"
                             "ItsyBitsy nRF52840 + JDI LPM013M126A\n"
                             "Background: panel white; preview tint approximate\n"
                             "30.63 × 29.35 mm cover · 23.02 mm active",

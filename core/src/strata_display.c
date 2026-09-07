@@ -12,7 +12,7 @@ struct reel_item { reel_renderer render; };
 #define REEL_ITEM_DURATION_MS 4000u
 
 static const struct scene_info scenes[] = {
-    {"Classic AE1200", "An animated Royale-style face with independent segment reels."},
+    {"AE1200 Demo Reel", "Staggered four-second reels with paired weather icons and readings. Weather values are demo data in Fahrenheit."},
 };
 
 /*
@@ -22,10 +22,14 @@ static const struct scene_info scenes[] = {
  * and on the MCU.
  */
 static void render_reel(uint8_t *frame, uint32_t elapsed_ms,
-                        const struct reel_item *items, size_t count)
+                        const struct reel_item *items, size_t count,
+                        uint32_t phase_ms)
 {
-    uint32_t index = (elapsed_ms / REEL_ITEM_DURATION_MS) % (uint32_t)count;
-    uint32_t local_ms = elapsed_ms % REEL_ITEM_DURATION_MS;
+    /* Reduce before adding phase to avoid overflowing near UINT32_MAX. */
+    uint32_t cycle_ms = REEL_ITEM_DURATION_MS * (uint32_t)count;
+    uint32_t reel_ms = (elapsed_ms % cycle_ms + phase_ms) % cycle_ms;
+    uint32_t index = reel_ms / REEL_ITEM_DURATION_MS;
+    uint32_t local_ms = reel_ms % REEL_ITEM_DURATION_MS;
     items[index].render(frame, local_ms, elapsed_ms);
 }
 
@@ -249,7 +253,7 @@ static void status_reel(uint8_t *f, uint32_t elapsed_ms)
         {classic_status},
         {battery_status},
     };
-    render_reel(f, elapsed_ms, items, ARRAY_SIZE(items));
+    render_reel(f, elapsed_ms, items, ARRAY_SIZE(items), 3000u);
 }
 
 static void analog_clock(uint8_t *f, uint32_t total_seconds)
@@ -341,6 +345,135 @@ static void world_map(uint8_t *f)
     line(f, 123, 40, 123, 79, STRATA_BLUE);
     line(f, 123, 79, 117, 79, STRATA_BLUE);
     line(f, 117, 79, 117, 40, STRATA_BLUE);
+}
+
+/* Circle and middle opening are one logical reel so icon/data always agree. */
+static void classic_pair(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{
+    (void)local_ms;
+    analog_clock(f, 10u * 3600u + 8u * 60u + 36u + elapsed_ms / 1000u);
+    world_map(f);
+}
+
+enum weather_condition { WEATHER_SUNNY, WEATHER_CLOUDY, WEATHER_RAINY, WEATHER_STORM };
+struct weather_sample {
+    const char *temperature;
+    const char *humidity;
+    const char *uv;
+    const char *detail;
+};
+static const struct weather_sample weather_samples[] = {
+    {"78", "HUM 42%", "UV 6", "SUNNY"},
+    {"68", "HUM 64%", "UV 2", "CLOUDY"},
+    {"61", "HUM 88%", "UV 1", "RAIN 80%"},
+    {"64", "HUM 92%", "UV 0", "RAIN 95%"},
+};
+
+static void weather_sun(uint8_t *f, uint32_t local_ms)
+{
+    static const struct point directions[] = {
+        {100, 0}, {92, 38}, {71, 71}, {38, 92},
+        {0, 100}, {-38, 92}, {-71, 71}, {-92, 38},
+        {-100, 0}, {-92, -38}, {-71, -71}, {-38, -92},
+        {0, -100}, {38, -92}, {71, -71}, {92, -38},
+    };
+    unsigned int phase = local_ms / 125u;
+    for (unsigned int ray = 0; ray < 8u; ++ray) {
+        struct point d = directions[(ray * 2u + phase) % ARRAY_SIZE(directions)];
+        int x0 = 38 + d.x * 18 / 100, y0 = 49 + d.y * 18 / 100;
+        int x1 = 38 + d.x * 24 / 100, y1 = 49 + d.y * 24 / 100;
+        line(f, x0, y0, x1, y1, STRATA_BLACK);
+        line(f, x0 + 1, y0, x1 + 1, y1, STRATA_YELLOW);
+    }
+    disc(f, 38, 49, 13, STRATA_BLACK);
+    disc(f, 38, 49, 11, STRATA_YELLOW);
+}
+
+static void weather_cloud(uint8_t *f, uint32_t local_ms, int rainy)
+{
+    int step = (int)((local_ms / 180u) % 12u);
+    int drift = (step <= 6 ? step : 12 - step) - 3;
+    int x = 16 + drift, y = rainy ? 32 : 38;
+    /* Solid clouds use native panel black, with no simulated gray fill. */
+    disc(f, x + 10, y + 12, 10, STRATA_BLACK);
+    disc(f, x + 22, y + 6, 12, STRATA_BLACK);
+    disc(f, x + 33, y + 13, 9, STRATA_BLACK);
+    rect(f, x + 10, y + 10, 24, 14, STRATA_BLACK);
+    if (rainy) {
+        for (int drop = 0; drop < 4; ++drop) {
+            int fall = (int)((local_ms / 60u + (uint32_t)drop * 4u) % 13u);
+            int dx = 24 + drop * 9, dy = 59 + fall;
+            line(f, dx, dy, dx - 2, dy + 3, STRATA_BLUE);
+            line(f, dx + 1, dy, dx - 1, dy + 3, STRATA_BLUE);
+        }
+    }
+}
+
+static void weather_pair(uint8_t *f, uint32_t local_ms, enum weather_condition condition)
+{
+    const struct weather_sample *sample = &weather_samples[condition];
+    if (condition == WEATHER_SUNNY)
+        weather_sun(f, local_ms);
+    else
+        weather_cloud(f, local_ms, condition >= WEATHER_RAINY);
+
+    if (condition == WEATHER_STORM) {
+        static const struct point bolt[] = {
+            {3, 0}, {12, 0}, {7, 9}, {13, 9}, {0, 27}, {4, 14}, {-2, 14},
+        };
+        uint32_t pulse = local_ms % 2000u;
+        if (pulse < 250u || (pulse >= 450u && pulse < 700u)) {
+            polygon(f, 36, 48, bolt, ARRAY_SIZE(bolt), STRATA_YELLOW);
+            for (size_t i = 0; i < ARRAY_SIZE(bolt); ++i) {
+                struct point a = bolt[i], b = bolt[(i + 1u) % ARRAY_SIZE(bolt)];
+                line(f, 36 + a.x, 48 + a.y, 36 + b.x, 48 + b.y, STRATA_BLACK);
+            }
+        }
+    }
+
+    /* All readings fit the middle/world-map aperture at native resolution. */
+    label(f, sample->temperature, 101, 41, 2, STRATA_BLACK);
+    rect(f, 126, 41, 4, 4, STRATA_BLACK);
+    rect(f, 127, 42, 2, 2, STRATA_WHITE);
+    label(f, "F", 132, 46, 1, STRATA_BLACK);
+    if (condition == WEATHER_STORM) label(f, "STORM", 140, 43, 1, STRATA_BLACK);
+    line(f, 101, 56, 169, 56, STRATA_BLACK);
+    label(f, sample->humidity, 101, 60, 1, STRATA_BLACK);
+    label(f, sample->uv, 147, 60, 1, STRATA_BLACK);
+    label(f, sample->detail, 101, 73, 1,
+          condition >= WEATHER_RAINY ? STRATA_BLUE : STRATA_BLACK);
+}
+
+static void sunny_pair(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{
+    (void)elapsed_ms;
+    weather_pair(f, local_ms, WEATHER_SUNNY);
+}
+
+static void cloudy_pair(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{
+    (void)elapsed_ms;
+    weather_pair(f, local_ms, WEATHER_CLOUDY);
+}
+
+static void rainy_pair(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{
+    (void)elapsed_ms;
+    weather_pair(f, local_ms, WEATHER_RAINY);
+}
+
+static void storm_pair(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{
+    (void)elapsed_ms;
+    weather_pair(f, local_ms, WEATHER_STORM);
+}
+
+static void weather_reel(uint8_t *f, uint32_t elapsed_ms)
+{
+    static const struct reel_item items[] = {
+        {classic_pair}, {sunny_pair}, {cloudy_pair}, {rainy_pair}, {storm_pair},
+    };
+    render_reel(f, elapsed_ms, items, ARRAY_SIZE(items), 2000u);
 }
 
 static void main_time(uint8_t *f, uint32_t total_seconds, uint32_t elapsed_ms)
@@ -450,16 +583,14 @@ static void main_reel(uint8_t *f, uint32_t elapsed_ms)
         {main_notification},
         {main_gmail},
     };
-    render_reel(f, elapsed_ms, items, ARRAY_SIZE(items));
+    render_reel(f, elapsed_ms, items, ARRAY_SIZE(items), 0u);
 }
 
 static void segment_face(uint8_t *f, uint32_t elapsed_ms)
 {
-    uint32_t total_seconds = 10u * 3600u + 8u * 60u + 36u + elapsed_ms / 1000u;
     /* Original AE-1200 timekeeping layout, fitted to the four cover openings. */
-    analog_clock(f, total_seconds);
+    weather_reel(f, elapsed_ms);
     status_reel(f, elapsed_ms);
-    world_map(f);
     main_reel(f, elapsed_ms);
 }
 

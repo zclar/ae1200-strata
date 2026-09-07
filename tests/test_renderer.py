@@ -32,7 +32,7 @@ lib.strata_render(animated, 0, 2234)
 assert bytes(animated) != bytes(first), "classic scene did not advance with elapsed time"
 
 battery = frame_type()
-lib.strata_render(battery, 0, 6000)
+lib.strata_render(battery, 0, 2000)
 assert 2 in battery, "battery reel item is missing its RGB111 green level fill"
 assert bytes(battery) != bytes(animated), "upper status reel did not advance"
 
@@ -64,6 +64,61 @@ assert before_gmail[123 * 176 + 8] != 4
 assert start_gmail[123 * 176 + 8] == 4
 assert before_repeat[123 * 176 + 8] == 4
 assert repeat[123 * 176 + 8] != 4
+
+def render_at(ms):
+    frame = frame_type()
+    lib.strata_render(frame, 0, ms)
+    return bytes(frame)
+
+def region(frame, x, y, width, height):
+    return b''.join(frame[row * 176 + x:row * 176 + x + width]
+                    for row in range(y, y + height))
+
+status_box = (95, 7, 81, 22)
+circle_box = (3, 15, 70, 68)
+middle_box = (98, 39, 74, 42)
+main_box = (0, 95, 176, 70)
+
+# Phase offsets stagger slot changes: status at 1s, paired weather at 2s,
+# main at 4s, then repeat each group's transitions every four seconds.
+assert 2 not in region(render_at(999), *status_box)
+assert 2 in region(render_at(1000), *status_box)
+assert 2 in region(render_at(4999), *status_box)
+assert 2 not in region(render_at(5000), *status_box)
+assert 6 not in region(render_at(1999), *circle_box)
+assert 6 in region(render_at(2000), *circle_box)
+assert 6 in region(render_at(5999), *circle_box)
+assert 6 not in region(render_at(6000), *circle_box)
+assert 1 not in region(render_at(9999), *circle_box)
+assert 1 in region(render_at(10000), *circle_box)
+assert 1 in region(render_at(13999), *circle_box)
+assert 6 in region(render_at(14000), *circle_box), "storm lightning is missing"
+assert 6 not in region(render_at(14800), *circle_box), "lightning did not blink off"
+assert 1 not in region(render_at(18000), *circle_box)
+
+for ms in (2000, 6000, 10000, 14000, 18000):
+    before, after = render_at(ms - 1), render_at(ms)
+    assert region(before, *middle_box) != region(after, *middle_box), "weather data missed icon transition"
+    assert region(before, *status_box) == region(after, *status_box), "status changed with weather"
+
+# Weather only owns the circle + middle: main slot transitions don't redraw it.
+assert region(render_at(3999), *middle_box) == region(render_at(4000), *middle_box)
+assert region(render_at(11999), *middle_box) == region(render_at(12000), *middle_box)
+for ms in (2100, 6100, 10100, 14100):
+    initial, later = render_at(ms), render_at(ms + 300)
+    assert region(initial, *circle_box) != region(later, *circle_box), "weather icon is static"
+    assert region(initial, *middle_box) == region(later, *middle_box), "weather readings drifted"
+    assert max(initial) <= 7
+assert 1 in region(render_at(10000), *middle_box), "rain probability must be visible"
+assert 1 not in region(render_at(6000), *middle_box), "cloudy card should omit rain probability"
+assert region(render_at(2000), *middle_box) == region(render_at(22000), *middle_box)
+for ms in (2000, 6000, 10000):
+    assert set(region(render_at(ms), 146, 42, 23, 7)) == {7}, "DEMO label was not removed"
+for ms in (6000, 10000, 14800):
+    assert render_at(ms)[43 * 176 + 38] == 0, "cloud must have a solid black fill"
+
+# Large timestamps must still select valid RGB111 frames.
+assert max(render_at(0xffffffff)) <= 7
 
 # Hardware stream packs two RGB111 pixels into RGB0/RGB0 nibbles.
 pattern, packed = frame_type(), packed_type()

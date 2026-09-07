@@ -41,8 +41,21 @@ panel's appearance without changing framebuffer data.
 Animation is organized as small, fixed-memory reels in the portable C renderer.
 Each reel is a static array of renderer callbacks; the compositor selects one
 callback and gives it a local timeline from 0 through 3999 ms. Every item lasts
-exactly four seconds. The top status and main display openings can therefore
-grow independently by adding a callback and one array entry.
+four seconds. Each reel also has a phase offset. The top status reel changes at
+1, 5, 9... seconds; the paired circle/middle reel at 2, 6, 10... seconds; the
+bottom reel at 4, 8, 12... seconds. The first visible classic slots in the top
+status and paired reel are shortened to establish these offsets; subsequent
+slots last a full four seconds. Reels can grow by adding a callback and one
+array entry without changing their phase.
+
+The circle and middle/world-map opening are owned by a single coordinated reel:
+classic clock/map, sunny, cloudy, rainy, thunderstorm. Solid black clouds drift;
+rain falls in blue and storm lightning pulses in yellow. A weather callback selects one demo
+sample and draws both its animated icon and its readings in the same frame, so
+conditions and values cannot advance independently. Temperatures are Fahrenheit;
+all cards include humidity and UV, and rain/storm cards include rain probability.
+No network or weather service is involved. These callbacks are compiled into
+both the desktop library and Nordic firmware; Tk only presents their pixels.
 
 This is intentionally not containerized. A process or container boundary would
 not exist on the nRF52840/nRF54L15 and would break simulator-to-hardware parity.

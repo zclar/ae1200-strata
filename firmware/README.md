@@ -39,6 +39,13 @@ multimeter.
 
 ## Color and emulator parity
 
+The staggered weather update is compiled from the same renderer as the desktop:
+circle/map weather pair, top status, and bottom notification reels retain their
+shared timing on hardware. Rebuild using `make firmware` after editing graphics.
+Preview approval does not flash the device automatically; copy the new UF2 to
+`ITSY840BOOT` when ready to test that revision physically. The first confirmed
+hardware baseline below predates the weather update.
+
 The renderer has exactly eight logical colors: black, blue, green, cyan, red,
 magenta, yellow, and white. The demo background is `STRATA_WHITE` (RGB bits
 `111`), packed into the panel's `RGB0` transfer nibble as `1110`. It does not

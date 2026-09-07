@@ -25,7 +25,13 @@ minute track, screws, and exact provisional aperture clipping. The upper status
 opening currently reels between the classic indicators and an animated battery
 level. The main opening alternates between the classic clock and fast,
 smooth-scrolling Messages and Gmail notification cards. Every reel item lasts
-exactly four seconds. See
+four seconds, with staggered change times for the top status, paired circle/map,
+and bottom openings (the first status and circle/map slots are shortened to
+establish the stagger). The circle and middle/world-map opening rotate together
+through classic, sunny, cloudy, rainy, and thunderstorm cards. Clouds are solid;
+the storm card adds pulsing yellow lightning and rain. Weather uses Fahrenheit demo
+temperatures, humidity and UV readings, plus rain probability on rain/storm cards.
+All weather graphics and timing live in the shared C renderer. See
 [packaging/README.md](packaging/README.md) for removal and details.
 
 ## Browser UX prototype
