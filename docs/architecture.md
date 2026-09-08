@@ -48,8 +48,8 @@ status and paired reel are shortened to establish these offsets; subsequent
 slots last a full four seconds. Reels can grow by adding a callback and one
 array entry without changing their phase.
 
-The bottom reel cycles through clock, Messages, Gmail, and music in 16 seconds.
-Music occupies seconds 12 through 16 of each cycle. Its title loops through a
+The bottom reel cycles through clock, Messages, Gmail, music, five glucose
+snapshots, and color and black glucose level animations in 44 seconds. Music occupies seconds 12 through 16 of each cycle. Its title loops through a
 clipped viewport at 40 pixels/second; a five-column segmented equalizer animates
 at 100 ms intervals. Fictional playback starts at 1:24 of a 3:43 track, with
 elapsed time and progress advancing at real-time speed. A pause glyph indicates
@@ -57,6 +57,17 @@ playing state. A green Spotify label and pixel logo identify the demo player.
 The played section of the progress bar has a static wave with tapered endpoints; the unplayed
 section stays straight. This is a visual demo, with no audio decoding, output, or phone
 control. All music rendering and timing are shared by the emulator and firmware.
+
+The glucose callbacks occupy seconds 16–44, four seconds per independent demo
+snapshot or animation. The last two cards fill the complete circle aperture
+from bottom to top and back down while updating the reading and trend. The first
+uses range colors and the second uses black fill only. Each callback
+draws both the main segment and the circle after the weather
+callback, clearing only the circle aperture first. This temporary ownership
+keeps glucose readings and the gauge synchronized without changing the status
+or middle reel clocks. The next normal main card automatically releases the
+circle to weather. All numeric data is fictional, explicitly labeled on-screen;
+see [glucose demo](glucose-demo.md) for the bands and blink behavior.
 
 The circle and middle/world-map opening are owned by a single coordinated reel:
 classic clock/map, sunny, cloudy, rainy, thunderstorm. The sunny card uses the

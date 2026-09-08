@@ -63,8 +63,8 @@ lib.strata_render(before_gmail, 0, 7999)
 lib.strata_render(start_gmail, 0, 8000)
 lib.strata_render(before_music, 0, 11999)
 lib.strata_render(music, 0, 12000)
-lib.strata_render(before_repeat, 0, 15999)
-lib.strata_render(repeat, 0, 16000)
+lib.strata_render(before_repeat, 0, 43999)
+lib.strata_render(repeat, 0, 44000)
 assert before_messages[122 * 176 + 10] != 1
 assert start_messages[122 * 176 + 10] == 1
 assert before_gmail[123 * 176 + 8] != 4
@@ -72,8 +72,8 @@ assert start_gmail[123 * 176 + 8] == 4
 assert before_music[123 * 176 + 8] == 4
 assert music[123 * 176 + 8] != 4
 assert music[158 * 176 + 8] == 1
-assert before_repeat[158 * 176 + 8] == 1
-assert repeat[158 * 176 + 8] != 1
+assert before_repeat[99 * 176 + 127] == 0
+assert repeat[99 * 176 + 127] == 7
 
 def render_at(ms):
     frame = frame_type()
@@ -98,6 +98,45 @@ assert region(render_at(15999), *middle_box) == region(render_at(16000), *middle
 assert region(render_at(12000), 64, 152, 35, 8) == region(render_at(12200), 64, 152, 35, 8)
 assert region(render_at(12000), 106, 152, 60, 8) == region(render_at(12200), 106, 152, 60, 8)
 
+# Glucose owns main+circle for five snapshots, with blinking confined to the
+# exclamation mark at red extremes. Numeric readings must never blink away.
+for start, color, alert in ((16000, 2, False), (20000, 1, False),
+                            (24000, 4, True), (28000, 6, False), (32000, 4, True)):
+    on, off = render_at(start), render_at(start + 500)
+    assert set(region(on, 8, 120, 54, 21)) == {7, color}
+    assert region(on, *main_box) == region(off, *main_box)
+    assert (4 in region(on, 36, 36, 4, 10)) == alert
+    assert 4 not in region(off, 36, 36, 4, 10)
+    assert region(on, *middle_box) == region(render_at(start % 20000), *middle_box)
+    assert region(on, *main_box) == region(render_at(start + 3599), *main_box)
+assert region(render_at(35999), *circle_box) != region(render_at(36000), *circle_box)
+
+# The additional full-circle level rises for two seconds, then falls. Its
+# reading, color band, direction, and fill height must move together.
+level_low, level_green, level_high, level_falling = (
+    render_at(36000), render_at(37000), render_at(38000), render_at(39000))
+assert 4 in region(level_low, *circle_box)
+assert 2 in region(level_green, *circle_box)
+assert 4 in region(level_high, *circle_box)
+assert 2 in region(level_falling, *circle_box)
+assert region(level_low, *circle_box) != region(level_green, *circle_box)
+assert region(level_green, *circle_box) != region(level_high, *circle_box)
+assert region(level_low, *main_box) != region(level_green, *main_box)
+assert region(level_green, *main_box) != region(level_high, *main_box)
+assert set(level_high[30 * 176 + 3:30 * 176 + 73]) == {4}, \
+    "colored level did not reach both aperture edges"
+assert region(level_green, *middle_box) == region(render_at(17000), *middle_box)
+assert region(level_high, *middle_box) == region(render_at(18000), *middle_box)
+assert region(render_at(39999), *circle_box) != region(render_at(40000), *circle_box)
+mono_low, mono_green, mono_high = render_at(40000), render_at(41000), render_at(42000)
+assert 4 not in region(mono_low, *circle_box)
+assert 2 not in region(mono_green, *circle_box)
+assert set(mono_high[30 * 176 + 3:30 * 176 + 73]) == {0}, \
+    "black level did not reach both aperture edges"
+assert region(mono_low, *circle_box) != region(mono_green, *circle_box)
+assert region(render_at(43999), *circle_box) != region(render_at(44000), *circle_box)
+assert region(render_at(44000), 96, 96, 73, 17) == region(render_at(0), 96, 96, 73, 17)
+
 # Phase offsets stagger slot changes: status at 1s, paired weather at 2s,
 # main at 4s, then each group changes items every four seconds.
 assert 2 not in region(render_at(999), *status_box)
@@ -114,7 +153,8 @@ assert 6 in region(render_at(5999), *circle_box)
 assert 6 not in region(render_at(6000), *circle_box)
 assert 6 in region(render_at(14000), *circle_box), "storm lightning is missing"
 assert 6 not in region(render_at(14800), *circle_box), "lightning did not blink off"
-assert 1 not in region(render_at(18000), *circle_box)
+# The glucose card borrows the circle starting at 16 seconds.
+assert 2 in region(render_at(18000), 8, 120, 54, 21)
 
 for ms in (2000, 6000, 10000, 14000, 18000):
     before, after = render_at(ms - 1), render_at(ms)

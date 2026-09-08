@@ -81,6 +81,7 @@ static uint8_t glyph_row(char c, int row)
     if (c == ':' && (row == 2 || row == 5)) return 0x04;
     if (c == '.' && row == 6) return 0x04;
     if (c == '-' && row == 3) return 0x0e;
+    if (c == '/') return (uint8_t)(1u << (row * 4 / 6));
     if (c == '%') {
         static const uint8_t percent[7] = {0x19, 0x1a, 0x04, 0x08, 0x0b, 0x13, 0x00};
         return percent[row];
@@ -790,6 +791,145 @@ static void main_music(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
     rect(f, progress_x + played - 1, 153, 3, 5, STRATA_BLUE);
 }
 
+/* Fictional CGM snapshots, not a sensor feed or a treatment recommendation.
+ * Thresholds and the user-selected palette are documented in docs/glucose-demo.md. */
+struct glucose_sample { unsigned int value; int trend; const char *tir; };
+static const struct glucose_sample glucose_samples[] = {
+    {112, 0, "78%"}, {63, -1, "67%"}, {48, -1, "64%"},
+    {212, 1, "71%"}, {278, 1, "61%"},
+};
+
+static unsigned int glucose_band(unsigned int value)
+{
+    if (value < 54u) return 0u;
+    if (value < 70u) return 1u;
+    if (value <= 180u) return 2u;
+    if (value <= 250u) return 3u;
+    return 4u;
+}
+
+static void glucose_stats(uint8_t *f, unsigned int value, int trend,
+                          const char *tir, unsigned int band)
+{
+    static const uint8_t colors[] = {
+        STRATA_RED, STRATA_BLUE, STRATA_GREEN, STRATA_YELLOW, STRATA_RED,
+    };
+    static const char *const states[] = {
+        "VERY LOW", "LOW", "IN RANGE", "HIGH", "VERY HIGH",
+    };
+    uint8_t color = colors[band];
+
+    label(f, "GLUCOSE", 126, 99, 1, STRATA_BLACK);
+    line(f, 82, 115, 168, 115, STRATA_BLACK);
+    char reading[] = {(char)('0' + value / 100u),
+                      (char)('0' + value / 10u % 10u),
+                      (char)('0' + value % 10u), '\0'};
+    label(f, reading + (value < 100u ? 1 : 0), 8, 120, 3, color);
+    label(f, "MG/DL", 8, 144, 1, STRATA_BLACK);
+    label(f, states[band], 109, 122, 1, color);
+    label(f, "TARGET 70-180", 96, 136, 1, STRATA_BLACK);
+    int arrow_y = trend == 0 ? 128 : trend < 0 ? 134 : 122;
+    if (trend == 0) {
+        line(f, 72, 128, 84, 128, STRATA_BLACK);
+        line(f, 84, 128, 80, 124, STRATA_BLACK);
+        line(f, 84, 128, 80, 132, STRATA_BLACK);
+    } else {
+        line(f, 78, 122, 78, 134, STRATA_BLACK);
+        line(f, 78, arrow_y, 74, arrow_y + trend * 4, STRATA_BLACK);
+        line(f, 78, arrow_y, 82, arrow_y + trend * 4, STRATA_BLACK);
+    }
+    label(f, trend == 0 ? "FLAT" : trend < 0 ? "FALL" : "RISE",
+          69, 140, 1, STRATA_BLACK);
+    line(f, 8, 151, 168, 151, STRATA_BLACK);
+    label(f, "24H TIR", 8, 155, 1, STRATA_BLACK);
+    label(f, tir, 60, 155, 1, STRATA_BLACK);
+    label(f, "1 MIN AGO", 112, 155, 1, STRATA_BLACK);
+}
+
+static void glucose_card(uint8_t *f, uint32_t local_ms, unsigned int sample_index)
+{
+    static const uint8_t colors[] = {STRATA_RED, STRATA_BLUE, STRATA_GREEN, STRATA_YELLOW, STRATA_RED};
+    static const char *const gauge_states[] = {"LOW", "LOW", "OK", "HIGH", "HIGH"};
+    static const struct point arc[] = {
+        {17, 67}, {14, 63}, {11, 58}, {10, 53}, {10, 47},
+        {11, 42}, {13, 37}, {15, 33}, {19, 29}, {23, 25},
+        {28, 23}, {33, 21}, {38, 21}, {43, 21}, {48, 23},
+        {53, 25}, {57, 29}, {61, 33}, {63, 37}, {65, 42},
+        {66, 47}, {66, 53}, {65, 58}, {62, 63}, {59, 67},
+    };
+    const struct glucose_sample *sample = &glucose_samples[sample_index];
+    unsigned int band = glucose_band(sample->value);
+    uint8_t color = colors[band];
+
+    /* The main callback borrows the circle for this paired card. It is drawn
+     * after the weather reel; clearing only this aperture preserves the middle. */
+    rect(f, 3, 15, 70, 68, STRATA_WHITE);
+    for (unsigned int i = 0; i < ARRAY_SIZE(arc); ++i)
+        rect(f, arc[i].x - 1, arc[i].y - 1, 3, 3, colors[i / 5u]);
+    struct point selected = arc[band * 5u + 2u];
+    disc(f, selected.x, selected.y, 4, STRATA_BLACK);
+    disc(f, selected.x, selected.y, 2, color);
+    int tip_x = 38 + (selected.x - 38) * 3 / 4;
+    int tip_y = 49 + (selected.y - 49) * 3 / 4;
+    line(f, 38, 55, tip_x, tip_y, STRATA_BLACK);
+    line(f, 39, 55, tip_x + 1, tip_y, STRATA_BLACK);
+    disc(f, 38, 55, 3, color);
+    label(f, gauge_states[band], band < 2u ? 29 : band == 2u ? 32 : 26, 65, 1, color);
+    if ((band == 0u || band == 4u) && (local_ms / 500u) % 2u == 0u) {
+        rect(f, 36, 36, 4, 10, STRATA_RED);
+        rect(f, 36, 49, 4, 3, STRATA_RED);
+    }
+
+    glucose_stats(f, sample->value, sample->trend, sample->tir, band);
+}
+
+static void glucose_normal(uint8_t *f, uint32_t ms, uint32_t elapsed)
+{ (void)elapsed; glucose_card(f, ms, 0); }
+static void glucose_low(uint8_t *f, uint32_t ms, uint32_t elapsed)
+{ (void)elapsed; glucose_card(f, ms, 1); }
+static void glucose_very_low(uint8_t *f, uint32_t ms, uint32_t elapsed)
+{ (void)elapsed; glucose_card(f, ms, 2); }
+static void glucose_high(uint8_t *f, uint32_t ms, uint32_t elapsed)
+{ (void)elapsed; glucose_card(f, ms, 3); }
+static void glucose_very_high(uint8_t *f, uint32_t ms, uint32_t elapsed)
+{ (void)elapsed; glucose_card(f, ms, 4); }
+
+static void glucose_level_card(uint8_t *f, uint32_t local_ms, int monochrome)
+{
+    static const uint8_t colors[] = {
+        STRATA_RED, STRATA_BLUE, STRATA_GREEN, STRATA_YELLOW, STRATA_RED,
+    };
+    uint32_t leg_ms = local_ms < 2000u ? local_ms : 4000u - local_ms;
+    unsigned int value = 48u + (unsigned int)(leg_ms * 230u / 2000u);
+    int trend = local_ms < 2000u ? 1 : -1;
+    unsigned int band = glucose_band(value);
+    uint8_t color = monochrome ? STRATA_BLACK : colors[band];
+    int fill_top = 76 - (int)((value - 48u) * 58u / 230u);
+    if (fill_top < 18) fill_top = 18;
+    if (fill_top > 76) fill_top = 76;
+
+    rect(f, 3, 15, 70, 68, STRATA_WHITE);
+    /* Fill beyond the aperture bounds; the physical cover and emulator mask
+     * crop it to the exact circle, so the level reaches every visible edge. */
+    rect(f, 3, fill_top, 70, 83 - fill_top, color);
+    line(f, 3, fill_top, 72, fill_top,
+         monochrome ? STRATA_WHITE : STRATA_BLACK);
+    uint8_t level_text = monochrome && fill_top < 65 ? STRATA_WHITE : STRATA_BLACK;
+    label(f, "LEVEL", 23, 65, 1, level_text);
+    if ((band == 0u || band == 4u) && (local_ms / 500u) % 2u == 0u) {
+        uint8_t alert = monochrome && fill_top < 53 ? STRATA_WHITE : STRATA_BLACK;
+        rect(f, 36, 37, 4, 10, alert);
+        rect(f, 36, 50, 4, 3, alert);
+    }
+    glucose_stats(f, value, trend, "68%", band);
+}
+
+static void glucose_level(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{ (void)elapsed_ms; glucose_level_card(f, local_ms, 0); }
+
+static void glucose_level_black(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
+{ (void)elapsed_ms; glucose_level_card(f, local_ms, 1); }
+
 static void main_reel(uint8_t *f, uint32_t elapsed_ms)
 {
     static const struct reel_item items[] = {
@@ -797,6 +937,13 @@ static void main_reel(uint8_t *f, uint32_t elapsed_ms)
         {main_notification},
         {main_gmail},
         {main_music},
+        {glucose_normal},
+        {glucose_low},
+        {glucose_very_low},
+        {glucose_high},
+        {glucose_very_high},
+        {glucose_level},
+        {glucose_level_black},
     };
     render_reel(f, elapsed_ms, items, ARRAY_SIZE(items), 0u);
 }

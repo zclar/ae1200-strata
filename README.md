@@ -31,6 +31,13 @@ music playback card. Music shows a slower looping track title, green Spotify
 label and pixel logo, elapsed time, pause glyph, static wave on the played part of the progress
 bar, and animated block equalizer. It is a playback UI
 demo with fictional track data; it does not play audio or control a phone.
+Five glucose demo cards follow music, pairing the main segment's readings,
+trend, time-in-range, and reading age with a colored circle gauge. Red extreme
+states blink an exclamation mark. A sixth card keeps that gauge and adds a
+full-circle level visualization that rises and falls through the range colors.
+A seventh repeats the edge-to-edge level in monochrome. On-screen prototype
+labels are replaced by the useful target range. All readings are simulated; see
+[glucose demo](docs/glucose-demo.md) for color bands and limitations.
 Every reel item lasts
 four seconds, with staggered change times for the top status, paired circle/map,
 and bottom openings (the first status and circle/map slots are shortened to
