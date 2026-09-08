@@ -26,7 +26,7 @@ opening currently reels between the classic indicators and two wide,
 eleven-cell LCD battery gauges: one clean bar-only version and one with its
 percentage in a dedicated right-side column beside seven uninterrupted cells.
 Bars light in discrete steps, with outlined empty cells. The main opening alternates between the
-classic clock, fast-scrolling Messages and Gmail notification cards, and a
+refined AE-1200-style clock, fast-scrolling Messages and Gmail notification cards, and a
 music playback card. Music shows a slower looping track title, green Spotify
 label and pixel logo, elapsed time, pause glyph, static wave on the played part of the progress
 bar, and animated block equalizer. It is a playback UI
@@ -38,6 +38,11 @@ full-circle level visualization that rises and falls through the range colors.
 A seventh repeats the edge-to-edge level in monochrome. On-screen prototype
 labels are replaced by the useful target range. All readings are simulated; see
 [glucose demo](docs/glucose-demo.md) for color bands and limitations.
+The final lower-segment card repeats the live classic clock with black background
+and light LCD characters. Both classic cards share dedicated AE-1200 electrode
+pixel maps: continuous rightward slant, broad tapered strokes, visible diagonal
+gaps, and larger seconds aligned with the time baseline. See
+[classic LCD reference](docs/classic-lcd.md) for the reference and pixel limits.
 Every reel item lasts
 four seconds, with staggered change times for the top status, paired circle/map,
 and bottom openings (the first status and circle/map slots are shortened to

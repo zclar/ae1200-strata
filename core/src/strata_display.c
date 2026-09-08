@@ -8,6 +8,9 @@ typedef void (*reel_renderer)(uint8_t *frame, uint32_t local_ms,
                               uint32_t elapsed_ms);
 struct reel_item { reel_renderer render; };
 
+static void polygon(uint8_t *f, int origin_x, int origin_y,
+                    const struct point *points, size_t count, uint8_t color);
+
 #define ARRAY_SIZE(items) (sizeof(items) / sizeof((items)[0]))
 #define REEL_ITEM_DURATION_MS 4000u
 
@@ -130,45 +133,104 @@ static void line(uint8_t *f, int x0, int y0, int x1, int y1, uint8_t color)
     }
 }
 
-static void horizontal_segment(uint8_t *f, int x, int y, int width,
-                               int thickness, uint8_t color)
-{
-    for (int row = 0; row < thickness; ++row) {
-        int inset = row == thickness / 2 ? 0 : 1;
-        rect(f, x + inset, y + row, width - inset * 2, 1, color);
-    }
-}
-
-static void vertical_segment(uint8_t *f, int x, int y, int height,
-                             int thickness, uint8_t color)
-{
-    for (int column = 0; column < thickness; ++column) {
-        int inset = column == thickness / 2 ? 0 : 1;
-        rect(f, x + column, y + inset, 1, height - inset * 2, color);
-    }
-}
-
-static void seven_digit(uint8_t *f, unsigned int digit, int x, int y,
-                        int small, uint8_t color)
+/*
+ * Native-pixel electrode maps adapted from the rightmost "8" in Casio's
+ * AE-1200 close-up (reference coordinates documented in docs/classic-lcd.md).
+ * A..G select individual LCD electrodes; dots are intentionally unlit gaps.
+ * Both halves share the same rightward slant. Keep diagonal joints separated
+ * by at least one pixel; subpixel antialiasing is unavailable on RGB111.
+ */
+static void ae1200_digit(uint8_t *f, unsigned int digit, int x, int y,
+                         int small, uint8_t color)
 {
     static const uint8_t segments[] = {
         0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f,
     };
+    static const char large_map[41][25] = {
+        "........AAAAAAAAAAAAA...",
+        "........AAAAAAAAAAAA..B.",
+        "......F..AAAAAAAAAA..BB.",
+        "......FF..AAAAAAAA..BBB.",
+        "......FFF..AAAAAA..BBBBB",
+        ".....FFFF...AAA...BBBBBB",
+        ".....FFFFF.......BBBBBB.",
+        ".....FFFFF.......BBBBBB.",
+        "....FFFFFF.......BBBBBB.",
+        "....FFFFFF.......BBBBBB.",
+        "....FFFFF........BBBBBB.",
+        "....FFFFF........BBBBBB.",
+        "...FFFFFF.......BBBBBBB.",
+        "...FFFFFF.......BBBBBB..",
+        "...FFFFFF.......BBBBBB..",
+        "...FFFFFF.......BBBBBB..",
+        "...FFFF...........BBBB..",
+        "...FF..GGGGGGGGG....B...",
+        ".....GGGGGGGGGGGGG......",
+        "...GGGGGGGGGGGGGGGG.....",
+        "....GGGGGGGGGGGGGG......",
+        "...E..GGGGGGGGGG....C...",
+        "...EEE..GGGGGG....CCC...",
+        "...EEEE.........CCCCC...",
+        "...EEEEE.......CCCCCC...",
+        "..EEEEE........CCCCCC...",
+        "..EEEEE........CCCCCC...",
+        "..EEEEE........CCCCC....",
+        "..EEEEE........CCCCC....",
+        "..EEEEE.......CCCCCC....",
+        "..EEEEE.......CCCCCC....",
+        ".EEEEEE.......CCCCCC....",
+        ".EEEEE........CCCCC.....",
+        ".EEEEE........CCCCC.....",
+        ".EEEE.........CCCCC.....",
+        ".EE...DDDDDD..CCCC......",
+        "....DDDDDDDDD..CCC......",
+        "..DDDDDDDDDDD...CC......",
+        ".DDDDDDDDDDDDD..C.......",
+        ".DDDDDDDDDDDDD..........",
+        "........................",
+    };
+    static const char seconds_map[29][18] = {
+        "......AAAAAAAAA..",
+        "......AAAAAAAA.B.",
+        "....FF.AAAAAA.BBB",
+        "....FF..AAAA.BBBB",
+        "....FFF.....BBBBB",
+        "...FFFF.....BBBBB",
+        "...FFFF.....BBBB.",
+        "...FFFF.....BBBB.",
+        "..FFFFF.....BBBB.",
+        "..FFFF......BBBB.",
+        "..FFFF.....BBBBB.",
+        "..FFF.......BBB..",
+        "..F..GGGGGG......",
+        "...GGGGGGGGGG....",
+        "...GGGGGGGGGG....",
+        "..E..GGGGGG...C..",
+        "..EEE.......CCC..",
+        "..EEE......CCCC..",
+        "..EEE......CCCC..",
+        ".EEEE.....CCCC...",
+        ".EEEE.....CCCC...",
+        ".EEEE.....CCCC...",
+        ".EEEE.....CCCC...",
+        ".EEE......CCCC...",
+        ".EE.......CCC....",
+        "...DDDDDD.CCC....",
+        ".DDDDDDDD..C.....",
+        "DDDDDDDDDD.......",
+        ".DDDDDDDDD.......",
+    };
+    const int width = small ? 17 : 24;
+    const int height = small ? 29 : 41;
     uint8_t on = segments[digit % 10u];
-    int thickness = small ? 2 : 3;
-    int width = small ? 9 : 19;
-    int vertical_height = small ? 10 : 18;
-    int right = small ? 9 : 18;
-    int middle = small ? 9 : 18;
-    int lower = small ? 10 : 20;
-    int bottom = small ? 19 : 38;
-    if (on & 0x01) horizontal_segment(f, x + 1, y, width, thickness, color);
-    if (on & 0x02) vertical_segment(f, x + right, y + 1, vertical_height, thickness, color);
-    if (on & 0x04) vertical_segment(f, x + right, y + lower, vertical_height, thickness, color);
-    if (on & 0x08) horizontal_segment(f, x + 1, y + bottom, width, thickness, color);
-    if (on & 0x10) vertical_segment(f, x, y + lower, vertical_height, thickness, color);
-    if (on & 0x20) vertical_segment(f, x, y + 1, vertical_height, thickness, color);
-    if (on & 0x40) horizontal_segment(f, x + 1, y + middle, width, thickness, color);
+
+    for (int row = 0; row < height; ++row)
+        for (int col = 0; col < width; ++col) {
+            char electrode = small ? seconds_map[row][col] : large_map[row][col];
+            if (electrode >= 'A' && electrode <= 'G' &&
+                (on & (1u << (electrode - 'A'))))
+                rect(f, x + col, y + row, 1, 1, color);
+        }
 }
 
 static void disc(uint8_t *f, int cx, int cy, int radius, uint8_t color)
@@ -625,37 +687,50 @@ static void weather_reel(uint8_t *f, uint32_t elapsed_ms)
     render_reel(f, elapsed_ms, items, ARRAY_SIZE(items), 2000u);
 }
 
-static void main_time(uint8_t *f, uint32_t total_seconds, uint32_t elapsed_ms)
+static void main_time(uint8_t *f, uint32_t total_seconds, uint32_t elapsed_ms,
+                      uint8_t ink, int inverted)
 {
     unsigned int second = total_seconds % 60u;
     unsigned int minute = (total_seconds / 60u) % 60u;
     unsigned int hour = (total_seconds / 3600u) % 12u;
     if (hour == 0u) hour = 12u;
 
-    label(f, "SUN", 103, 100, 1, STRATA_BLACK);
-    label(f, "6-30", 135, 100, 1, STRATA_BLACK);
-    line(f, 130, 96, 130, 113, STRATA_BLACK);
-    line(f, 82, 115, 168, 115, STRATA_BLACK);
-    label(f, "DST", 139, 123, 1, STRATA_BLACK);
-    label(f, "PM", 6, 134, 1, STRATA_BLACK);
+    /* The sculpted main aperture spans panel rows 92–167 and reaches one
+     * pixel beyond both horizontal matrix edges. Cover its full bounding box;
+     * the faceplate performs the final polygon clip. */
+    if (inverted) rect(f, 0, 91, 176, 78, STRATA_BLACK);
+    label(f, "SUN", 102, 100, 1, ink);
+    label(f, "6-30", 137, 100, 1, ink);
+    line(f, 130, 96, 130, 113, ink);
+    line(f, 82, 115, 168, 115, ink);
+    label(f, "DST", 141, 122, 1, ink);
+    label(f, "PM", 7, 135, 1, ink);
 
-    if (hour >= 10u) seven_digit(f, hour / 10u, 30, 122, 0, STRATA_BLACK);
-    seven_digit(f, hour % 10u, 52, 122, 0, STRATA_BLACK);
+    if (hour >= 10u) ae1200_digit(f, hour / 10u, 22, 123, 0, ink);
+    ae1200_digit(f, hour % 10u, 48, 123, 0, ink);
     if ((elapsed_ms / 500u) % 2u == 0u) {
-        disc(f, 77, 135, 2, STRATA_BLACK);
-        disc(f, 77, 150, 2, STRATA_BLACK);
+        rect(f, 76, 133, 4, 4, ink);
+        rect(f, 74, 149, 4, 4, ink);
     }
-    seven_digit(f, minute / 10u, 83, 122, 0, STRATA_BLACK);
-    seven_digit(f, minute % 10u, 105, 122, 0, STRATA_BLACK);
-    seven_digit(f, second / 10u, 135, 140, 1, STRATA_BLACK);
-    seven_digit(f, second % 10u, 148, 140, 1, STRATA_BLACK);
+    ae1200_digit(f, minute / 10u, 83, 123, 0, ink);
+    ae1200_digit(f, minute % 10u, 109, 123, 0, ink);
+    ae1200_digit(f, second / 10u, 134, 135, 1, ink);
+    ae1200_digit(f, second % 10u, 152, 135, 1, ink);
 }
 
 static void main_time_item(uint8_t *f, uint32_t local_ms, uint32_t elapsed_ms)
 {
     uint32_t total_seconds = 10u * 3600u + 8u * 60u + 36u + elapsed_ms / 1000u;
     (void)local_ms;
-    main_time(f, total_seconds, elapsed_ms);
+    main_time(f, total_seconds, elapsed_ms, STRATA_BLACK, 0);
+}
+
+static void main_time_inverted_item(uint8_t *f, uint32_t local_ms,
+                                    uint32_t elapsed_ms)
+{
+    uint32_t total_seconds = 10u * 3600u + 8u * 60u + 36u + elapsed_ms / 1000u;
+    (void)local_ms;
+    main_time(f, total_seconds, elapsed_ms, STRATA_WHITE, 1);
 }
 
 static void message_icon(uint8_t *f, int x, int y, uint8_t color)
@@ -944,6 +1019,7 @@ static void main_reel(uint8_t *f, uint32_t elapsed_ms)
         {glucose_very_high},
         {glucose_level},
         {glucose_level_black},
+        {main_time_inverted_item},
     };
     render_reel(f, elapsed_ms, items, ARRAY_SIZE(items), 0u);
 }

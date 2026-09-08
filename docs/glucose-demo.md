@@ -38,7 +38,8 @@ Each snapshot lasts four seconds: in-range at 16 s, low at 20 s, very-low at
 24 s, high at 28 s, and very-high at 32 s. These are separate fictional examples,
 not a person changing glucose levels that quickly. The level animation follows
 at 36–40 seconds. The black level follows at 40–44 seconds, and the full main
-reel repeats at 44 s. During these cards,
+glucose sequence ends at 44 s; the inverted classic card follows through 48 s,
+when the full main reel repeats. During the glucose cards,
 the main renderer temporarily owns the circle;
 it clears only that aperture and draws after the existing weather renderer.
 The middle and upper-right reels keep their timing. At 44 s the circle returns

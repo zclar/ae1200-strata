@@ -63,8 +63,8 @@ lib.strata_render(before_gmail, 0, 7999)
 lib.strata_render(start_gmail, 0, 8000)
 lib.strata_render(before_music, 0, 11999)
 lib.strata_render(music, 0, 12000)
-lib.strata_render(before_repeat, 0, 43999)
-lib.strata_render(repeat, 0, 44000)
+lib.strata_render(before_repeat, 0, 47999)
+lib.strata_render(repeat, 0, 48000)
 assert before_messages[122 * 176 + 10] != 1
 assert start_messages[122 * 176 + 10] == 1
 assert before_gmail[123 * 176 + 8] != 4
@@ -135,7 +135,19 @@ assert set(mono_high[30 * 176 + 3:30 * 176 + 73]) == {0}, \
     "black level did not reach both aperture edges"
 assert region(mono_low, *circle_box) != region(mono_green, *circle_box)
 assert region(render_at(43999), *circle_box) != region(render_at(44000), *circle_box)
-assert region(render_at(44000), 96, 96, 73, 17) == region(render_at(0), 96, 96, 73, 17)
+
+# The final card reuses the refined classic digit geometry with a black main
+# aperture and light LCD segments. It remains a live clock and loops at 48 s.
+classic, inverted = render_at(0), render_at(44000)
+assert region(classic, *main_box) != region(inverted, *main_box)
+assert region(inverted, *main_box).count(0) > region(classic, *main_box).count(0)
+assert inverted[92 * 176 + 100] == 0, "inverse missed the shaped upper edge"
+assert inverted[167 * 176 + 80] == 0, "inverse missed the lower edge"
+assert set(inverted[91 * 176:169 * 176]).issuperset({0, 7})
+assert 7 in region(inverted, 30, 120, 132, 42)
+assert region(inverted, *main_box) != region(render_at(45000), *main_box)
+assert region(render_at(47999), *main_box) != region(render_at(48000), *main_box)
+assert region(render_at(48000), 96, 96, 73, 17) == region(render_at(0), 96, 96, 73, 17)
 
 # Phase offsets stagger slot changes: status at 1s, paired weather at 2s,
 # main at 4s, then each group changes items every four seconds.

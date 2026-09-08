@@ -49,7 +49,8 @@ slots last a full four seconds. Reels can grow by adding a callback and one
 array entry without changing their phase.
 
 The bottom reel cycles through clock, Messages, Gmail, music, five glucose
-snapshots, and color and black glucose level animations in 44 seconds. Music occupies seconds 12 through 16 of each cycle. Its title loops through a
+snapshots, color and black glucose level animations, and an inverted classic
+clock in 48 seconds. Music occupies seconds 12 through 16 of each cycle. Its title loops through a
 clipped viewport at 40 pixels/second; a five-column segmented equalizer animates
 at 100 ms intervals. Fictional playback starts at 1:24 of a 3:43 track, with
 elapsed time and progress advancing at real-time speed. A pause glyph indicates
@@ -68,6 +69,15 @@ keeps glucose readings and the gauge synchronized without changing the status
 or middle reel clocks. The next normal main card automatically releases the
 circle to weather. All numeric data is fictional, explicitly labeled on-screen;
 see [glucose demo](glucose-demo.md) for the bands and blink behavior.
+
+The inverted classic card occupies seconds 44–48. It fills only the main
+aperture black and draws the same live time layout in the light RGB111 state.
+The normal and inverted cards share native-pixel AE-1200 electrode maps
+for hours, minutes, and seconds. The large digits occupy 24 x 41 cells and
+seconds 17 x 29, with a common baseline. The maps retain the continuous
+rightward slant, broad tapered strokes, and one-pixel diagonal gaps. They are
+drawn by the same function with only the ink color changing. See
+[classic LCD reference](classic-lcd.md) for source coordinates and limitations.
 
 The circle and middle/world-map opening are owned by a single coordinated reel:
 classic clock/map, sunny, cloudy, rainy, thunderstorm. The sunny card uses the
