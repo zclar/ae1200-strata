@@ -39,8 +39,8 @@ A seventh repeats the edge-to-edge level in monochrome. On-screen prototype
 labels are replaced by the useful target range. All readings are simulated; see
 [glucose demo](docs/glucose-demo.md) for color bands and limitations.
 The final lower-segment card repeats the live classic clock with black background
-and light LCD characters. Both classic cards share dedicated AE-1200 electrode
-pixel maps: continuous rightward slant, broad tapered strokes, visible diagonal
+and light LCD characters. Both classic cards share conventional seven-segment
+LCD pixel maps: straight thick strokes, matching diagonal ends, consistent
 gaps, and larger seconds aligned with the time baseline. See
 [classic LCD reference](docs/classic-lcd.md) for the reference and pixel limits.
 Every reel item lasts

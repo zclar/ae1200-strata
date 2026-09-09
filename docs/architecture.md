@@ -72,12 +72,12 @@ see [glucose demo](glucose-demo.md) for the bands and blink behavior.
 
 The inverted classic card occupies seconds 44–48. It fills only the main
 aperture black and draws the same live time layout in the light RGB111 state.
-The normal and inverted cards share native-pixel AE-1200 electrode maps
+The normal and inverted cards share native-pixel classic LCD electrode maps
 for hours, minutes, and seconds. The large digits occupy 24 x 41 cells and
-seconds 17 x 29, with a common baseline. The maps retain the continuous
-rightward slant, broad tapered strokes, and one-pixel diagonal gaps. They are
+seconds 17 x 29, with a common baseline. The maps use straight thick strokes,
+matched diagonal ends, symmetric halves, and separated electrodes. They are
 drawn by the same function with only the ink color changing. See
-[classic LCD reference](classic-lcd.md) for source coordinates and limitations.
+[classic LCD reference](classic-lcd.md) for geometry and pixel limitations.
 
 The circle and middle/world-map opening are owned by a single coordinated reel:
 classic clock/map, sunny, cloudy, rainy, thunderstorm. The sunny card uses the
